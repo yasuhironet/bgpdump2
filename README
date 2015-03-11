@@ -1,0 +1,20 @@
+
+* usage examples
+
+% ./src/bgpdump2 --help
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2
+
+% ./src/bgpdump2 ../ribs/rib.2014081{7,8}.1500.bz2
+
+% ./src/bgpdump2 ../ribs/rib.2014081{7,8}.1500.bz2 --count
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 --peer 1
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -u -p 1 -p 2
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -p 1 -l 8.8.8.8
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -p 1 -L <addr-file>
+
+
