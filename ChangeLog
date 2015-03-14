@@ -1,0 +1,8 @@
+
+2015-03-14  Yasuhiro Ohara  <yasu@nttv6.jp>
+
+	* script/compare-peer-with-others*.sh: scripts to compare
+	peer routes.
+	* src/bgpdump_option.[ch]: add, refactoring.
+	* src/bgpdump.c: udiff with table lookup.
+

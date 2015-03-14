@@ -28,3 +28,5 @@ depcomp
 install-sh
 missing
 
+data
+

@@ -16,27 +16,32 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define BGPDUMP_VERSION "v2.0.1"
+#define BGPDUMP_BUFSIZ_DEFAULT "16MiB"
+
 extern int debug;
 extern int detail;
 extern int verbose;
 extern int show;
+extern int brief;
+extern int compat_mode;
+extern int udiff;
+extern int udiff_verbose;
+extern int udiff_lookup;
+extern int route_count;
+extern int stat;
+extern int benchmark;
 extern int lookup;
 extern char *lookup_addr;
 extern char *lookup_file;
-extern int udiff;
-extern int multi_origin;
-extern int tschange;
-extern int route_count;
-extern int plen_dist;
-extern int benchmark;
-extern unsigned long long ntimes;
-extern unsigned long long nroutes;
-extern char *input;
-extern char *output;
-extern unsigned long seed;
 extern int peer_table_only;
-extern int route_table;
-extern int mbt_table;
-extern int integrity;
-extern int exhaustive;
+
+extern unsigned long long bufsiz;
+extern unsigned long long nroutes;
+
+void usage ();
+void version ();
+
+int
+bgpdump_getopt (int argc, char **argv);
 

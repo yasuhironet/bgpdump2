@@ -9,12 +9,32 @@
 
 % ./src/bgpdump2 ../ribs/rib.2014081{7,8}.1500.bz2 --count
 
-% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 --peer 1
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -k
 
-% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -u -p 1 -p 2
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 --peer 1
 
 % ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -p 1 -l 8.8.8.8
 
 % ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -p 1 -L <addr-file>
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -u -p 1 -p 2
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -u -r -p 1 -p 2
+
+udiff:
+<: the prefix is in left and unreachable in right (maybe partially).
++: the prefix is only in right (but it is reachable in left).
+): the prefix is in right, and is covered by a shorter prefix in left
+   that is unreachable in right. (i.e., the shorter is '<')
+>: the prefix is in right and unreachable in left (maybe partially).
+-: the prefix is only in left (but it is reachable in right).
+(: the prefix is in left, and is covered by a shorter prefix in right
+   that is unreachable in left. (i.e., the shorter is '>')
+
+% ./src/bgpdump2 ../ribs/rib.20140817.1500.bz2 -U -r -p 1 -p 2
+
+verbose udiff:
+{: the prefix to compare is in the left peer.
+}: the prefix to compare is in the right peer.
 
 

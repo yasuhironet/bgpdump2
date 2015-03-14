@@ -16,24 +16,11 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _BGPDUMP_H_
-#define _BGPDUMP_H_
+#ifndef _BGPDUMP_PARSE_H_
+#define _BGPDUMP_PARSE_H_
 
-#ifndef MIN
-#define MIN(x, y) ((x) > (y) ? (y) : (x))
-#endif /*MIN*/
+unsigned long long
+resolv_number (char *notation, char **endptr);
 
-#define AUTLIM 8
-extern unsigned long autnums[];
-extern int autsiz;
-
-extern struct ptree *ptree[];
-#define ROUTE_ORIG_SIZE (1000 * 1000 * 1000)
-extern int route_orig_size;
-
-extern int safi;
-extern int qaf;
-#define MAX_ADDR_LENGTH 16
-
-#endif /*_BGPDUMP_H_*/
+#endif /*_BGPDUMP_PARSE_H_*/
 

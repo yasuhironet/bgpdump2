@@ -28,6 +28,7 @@
 #include "ptree.h"
 
 #include "bgpdump.h"
+#include "bgpdump_option.h"
 #include "bgpdump_route.h"
 #include "bgpdump_peer.h"
 #include "bgpdump_peerstat.h"

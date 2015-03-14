@@ -30,7 +30,7 @@
 #include "queue.h"
 #include "ptree.h"
 
-#include "bgpdump_opt.h"
+#include "bgpdump_option.h"
 #include "bgpdump_query.h"
 #include "bgpdump_route.h"
 

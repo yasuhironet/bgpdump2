@@ -27,7 +27,7 @@
 #include <assert.h>
 
 #include "bgpdump.h"
-#include "bgpdump_opt.h"
+#include "bgpdump_option.h"
 #include "bgpdump_route.h"
 #include "bgpdump_peer.h"
 

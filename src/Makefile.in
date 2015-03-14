@@ -96,6 +96,7 @@ am_bgpdump2_OBJECTS = bgpdump_file.$(OBJEXT) bgpdump_peer.$(OBJEXT) \
 	benchmark.$(OBJEXT) ptree.$(OBJEXT) queue.$(OBJEXT) \
 	bgpdump_savefile.$(OBJEXT) bgpdump_query.$(OBJEXT) \
 	bgpdump_ptree.$(OBJEXT) bgpdump_peerstat.$(OBJEXT) \
+	bgpdump_option.$(OBJEXT) bgpdump_parse.$(OBJEXT) \
 	bgpdump.$(OBJEXT)
 bgpdump2_OBJECTS = $(am_bgpdump2_OBJECTS)
 bgpdump2_LDADD = $(LDADD)
@@ -246,14 +247,14 @@ bgpdump2_SOURCES = \
   bgpdump_file.c bgpdump_peer.c bgpdump_data.c bgpdump_route.c \
   benchmark.c ptree.c queue.c \
   bgpdump_savefile.c bgpdump_query.c bgpdump_ptree.c \
-  bgpdump_peerstat.c \
+  bgpdump_peerstat.c bgpdump_option.c bgpdump_parse.c \
   bgpdump.c
 
 noinst_HEADERS = \
   bgpdump_file.h bgpdump_peer.h bgpdump_data.h bgpdump_route.h \
   benchmark.h ptree.h queue.h \
   bgpdump_savefile.h bgpdump_query.h bgpdump_ptree.h \
-  bgpdump_peerstat.h bgpdump_opt.h \
+  bgpdump_peerstat.h bgpdump_option.h bgpdump_parse.h \
   bgpdump.h
 
 all: all-am
@@ -347,6 +348,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_data.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_file.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_option.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_peer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_peerstat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_ptree.Po@am__quote@

@@ -28,6 +28,7 @@
 #include <assert.h>
 
 #include "bgpdump.h"
+#include "bgpdump_option.h"
 #include "bgpdump_data.h"
 #include "bgpdump_peer.h"
 #include "bgpdump_route.h"
@@ -35,6 +36,9 @@
 
 #include "queue.h"
 #include "ptree.h"
+
+extern struct bgp_route *diff_table[];
+extern struct ptree *diff_ptree[];
 
 #define BUFFER_OVERRUN_CHECK(P,SIZE,END) \
   if ((P) + (SIZE) > (END))              \
@@ -52,8 +56,6 @@ uint32_t sequence_number;
 uint16_t peer_index;
 char prefix[16];
 uint8_t prefix_length;
-
-struct bgp_route diff_target[2];
 
 void
 bgpdump_process_mrt_header (struct mrt_header *h, struct mrt_info *info)
@@ -269,9 +271,9 @@ bgpdump_process_table_v2_peer_index_table (struct mrt_header *h,
 }
 
 void
-bgpdump_process_bgp_attributes (char *q, char *data_end)
+bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
 {
-  char *p = q;
+  char *p = start;
   int size;
 
   char attr_flags[64];
@@ -302,16 +304,10 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
 #define MP_UNREACH_NLRI  15
 #define EXTENDED_COMMUNITY 16
 
-  struct bgp_route route;
-
-  memset (&route, 0, sizeof (route));
-  memcpy (route.prefix, prefix, (prefix_length + 7) / 8);
-  route.prefix_length = prefix_length;
-
-  while (p < data_end)
+  while (p < end)
     {
       size = sizeof (attribute_type);
-      BUFFER_OVERRUN_CHECK(p, size, data_end)
+      BUFFER_OVERRUN_CHECK(p, size, end)
       attribute_type = ntohs (*(uint16_t *)p);
       p += size;
 
@@ -366,14 +362,14 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
       if (attribute_type & EXTENDED_LENGTH)
         {
           size = 2;
-          BUFFER_OVERRUN_CHECK(p, size, data_end)
+          BUFFER_OVERRUN_CHECK(p, size, end)
           attribute_length = ntohs (*(uint16_t *)p);
           p += size;
         }
       else
         {
           size = 1;
-          BUFFER_OVERRUN_CHECK(p, size, data_end)
+          BUFFER_OVERRUN_CHECK(p, size, end)
           attribute_length = *(uint8_t *)p;
           p += size;
         }
@@ -382,7 +378,7 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
         printf ("  attr: %s <%s> (%#04x) len: %d\n",
                 attr_name, attr_flags, attribute_type, attribute_length);
 
-      BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)
+      BUFFER_OVERRUN_CHECK(p, attribute_length, end)
       switch (attribute_type & TYPE_CODE)
         {
         case AS_PATH:
@@ -398,7 +394,7 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
                 printf ("  as_path[%s:%d]:",
                         (type == 1 ? "set" : "seq"), path_size);
 
-              route.path_size = path_size;
+              route->path_size = path_size;
               for (i = 0; i < path_size; i++)
                 {
                   uint32_t as_path = ntohl (*(uint32_t *) r);
@@ -407,20 +403,20 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
                     printf (" %lu", (unsigned long) as_path);
 
                   if (i < ROUTE_PATH_LIMIT)
-                    route.path_list[i] = as_path;
+                    route->path_list[i] = as_path;
 #if 1
                   else
                     {
                       if (show && detail)
                         printf ("\n");
                       printf ("path_list buffer overflow.\n");
-                      route_print (&route);
+                      route_print (route);
                     }
 #endif
 
                   if (i == path_size - 1)
                     {
-                      route.origin_as = as_path;
+                      route->origin_as = as_path;
                     }
 
                   if (autsiz)
@@ -429,8 +425,8 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
                       unsigned long prev, curr;
                       prev = 0;
                       if (i > 0)
-                        prev = route.path_list[i - 1];
-                      curr = route.path_list[i];
+                        prev = route->path_list[i - 1];
+                      curr = route->path_list[i];
 
                       if (prev > 0 && prev != curr)
                         {
@@ -453,12 +449,12 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
           break;
 
         case NEXT_HOP:
-          memset (route.nexthop, 0, sizeof (route.nexthop));
-          memcpy (route.nexthop, p, attribute_length);
+          memset (route->nexthop, 0, sizeof (route->nexthop));
+          memcpy (route->nexthop, p, attribute_length);
           if (show && detail)
             {
               char buf[32];
-              inet_ntop (safi, route.nexthop, buf, sizeof (buf));
+              inet_ntop (safi, route->nexthop, buf, sizeof (buf));
               printf ("  nexthop: %s\n", buf);
             }
           break;
@@ -466,25 +462,25 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
         case ORIGIN:
           if (show && detail)
             printf ("  origin: %d\n", (int) *p);
-          route.origin = (uint8_t) *p;
+          route->origin = (uint8_t) *p;
           break;
 
         case ATOMIC_AGGREGATE:
           if (show && detail)
             printf ("  atomic_aggregate: len: %d\n", attribute_length);
-          route.atomic_aggregate++;
+          route->atomic_aggregate++;
           break;
 
         case LOCAL_PREF:
-          route.localpref = ntohl (*(unsigned long *)p);
+          route->localpref = ntohl (*(unsigned long *)p);
           if (show && detail)
-            printf ("  local-pref: %lu\n", (unsigned long) route.localpref);
+            printf ("  local-pref: %lu\n", (unsigned long) route->localpref);
           break;
 
         case MULTI_EXIT_DISC:
-          route.med = ntohl (*(unsigned long *)p);
+          route->med = ntohl (*(unsigned long *)p);
           if (show && detail)
-            printf ("  med: %lu\n", (unsigned long) route.med);
+            printf ("  med: %lu\n", (unsigned long) route->med);
           break;
 
         case COMMUNITY:
@@ -511,8 +507,8 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
             r++;
             if ((debug || detail) && len != sizeof (struct in6_addr))
               printf ("warning: MP_NLRI: nexthop len: %d\n", len);
-            memset (route.nexthop, 0, sizeof (route.nexthop));
-            memcpy (route.nexthop, r, MIN(MAX_ADDR_LENGTH, len));
+            memset (route->nexthop, 0, sizeof (route->nexthop));
+            memcpy (route->nexthop, r, MIN(MAX_ADDR_LENGTH, len));
             if ((debug || verbose) && len == 2 * sizeof (struct in6_addr))
               {
                 char nexthop1[16], nexthop2[16];
@@ -539,7 +535,7 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
             if (show && detail)
               {
                 char buf[64], buf2[64];
-                inet_ntop (AF_INET6, route.nexthop, buf2, sizeof (buf2));
+                inet_ntop (AF_INET6, route->nexthop, buf2, sizeof (buf2));
                 inet_ntop (AF_INET6, nlri_prefix, buf, sizeof (buf));
                 printf ("  mp_reach_nlri: (afi/safi: %d/%d) %s(size:%d) %s/%d\n",
                         afi, safi, buf2, len, buf, nlri_plen);
@@ -554,62 +550,6 @@ bgpdump_process_bgp_attributes (char *q, char *data_end)
       p += attribute_length;
     }
 
-  /* Now all the BGP attributes for this rib_entry are processed. */
-
-  if (stat)
-    {
-      int i, peer_match = 0;
-
-      if (peer_spec_size == 0)
-        peer_match++;
-      else
-        {
-          for (i = 0; i < peer_spec_size; i++)
-            if (peer_index == peer_spec_index[i])
-              peer_match++;
-        }
-
-      if (peer_match)
-        {
-          //printf ("peer_stat_save: peer: %d\n", peer_index);
-          peer_stat_save (peer_index, &route);
-        }
-    }
-
-  if (lookup)
-    {
-      struct bgp_route *rp;
-      if (route_size < route_limit)
-        {
-          rp = &routes[route_size++];
-        }
-      else
-        {
-          rp = &routes[route_size - 1];
-          printf ("route table overflow.\n");
-        }
-
-      memcpy (rp, &route, sizeof (struct bgp_route));
-
-      ptree_add ((char *)&rp->prefix, rp->prefix_length,
-                 (void *)rp, ptree[safi]);
-    }
-
-  if (udiff)
-    {
-      for (i = 0; i < MIN (peer_spec_size, 2); i++)
-        {
-          if (peer_spec_index[i] == peer_index)
-            diff_target[i] = route;
-        }
-    }
-
-  if (brief)
-    route_print_brief (&route);
-  else if (show)
-    route_print (&route);
-  else if (compat_mode)
-    route_print_compat (&route);
 }
 
 void
@@ -663,8 +603,76 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             peer_table[peer_index].route_count++;
         }
 
+      struct bgp_route route;
+      memset (&route, 0, sizeof (route));
+      memcpy (route.prefix, prefix, (prefix_length + 7) / 8);
+      route.prefix_length = prefix_length;
+
       if (brief || show || lookup || udiff || stat || compat_mode || autsiz)
-        bgpdump_process_bgp_attributes (p, p + attribute_length);
+        bgpdump_process_bgp_attributes (&route, p, p + attribute_length);
+
+      /* Now all the BGP attributes for this rib_entry are processed. */
+
+      if (stat)
+        {
+          int i, peer_match = 0;
+
+          if (peer_spec_size == 0)
+            peer_match++;
+          else
+            {
+              for (i = 0; i < peer_spec_size; i++)
+                if (peer_index == peer_spec_index[i])
+                  peer_match++;
+            }
+
+          if (peer_match)
+            {
+              //printf ("peer_stat_save: peer: %d\n", peer_index);
+              peer_stat_save (peer_index, &route);
+            }
+        }
+
+      if (lookup)
+        {
+          struct bgp_route *rp;
+          if (route_size < route_limit)
+            {
+              rp = &routes[route_size++];
+            }
+          else
+            {
+              rp = &routes[route_size - 1];
+              printf ("route table overflow.\n");
+            }
+
+          memcpy (rp, &route, sizeof (struct bgp_route));
+
+          ptree_add ((char *)&rp->prefix, rp->prefix_length,
+                     (void *)rp, ptree[safi]);
+        }
+
+      if (udiff)
+        {
+          for (i = 0; i < MIN (peer_spec_size, 2); i++)
+            {
+              if (peer_spec_index[i] == peer_index)
+                {
+                  diff_table[i][sequence_number] = route;
+                  if (udiff_lookup)
+                    ptree_add ((char *)&route.prefix, route.prefix_length,
+                               (void *)&diff_table[i][sequence_number],
+                               diff_ptree[i]);
+                }
+            }
+        }
+
+      if (brief)
+        route_print_brief (&route);
+      else if (show)
+        route_print (&route);
+      else if (compat_mode)
+        route_print_compat (&route);
     }
 
   BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)
@@ -684,12 +692,6 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
 
   uint32_t prefix_size;
   uint16_t entry_count;
-
-  if (udiff)
-    {
-      for (i = 0; i < 2; i++)
-        memset (&diff_target[i], 0, sizeof (struct bgp_route));
-    }
 
   p = (char *)h + sizeof (struct mrt_header);
 
@@ -731,39 +733,107 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
 
   if (udiff)
     {
-#if 0
-      if (multi_origin)
+      struct bgp_route *route;
+
+      if (udiff_verbose)
         {
-          if (diff_target[0].prefix_length == diff_target[1].prefix_length &&
-              ! memcmp (diff_target[0].prefix, diff_target[1].prefix,
-                        diff_target[0].prefix_length) &&
-              diff_target[0].origin_as != diff_target[1].origin_as)
+          printf ("seq: %lu\n", (unsigned long) sequence_number);
+          if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]))
+            {
+              route = &diff_table[0][sequence_number];
+              printf ("{");
+              route_print (route);
+            }
+          if (! IS_ROUTE_NULL (&diff_table[1][sequence_number]))
+            {
+              route = &diff_table[1][sequence_number];
+              printf ("}");
+              route_print (route);
+            }
+        }
+
+      /* only in left */
+      if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
+          IS_ROUTE_NULL (&diff_table[1][sequence_number]))
+        {
+          route = &diff_table[0][sequence_number];
+          if (! udiff_lookup)
             {
               printf ("-");
-              route_print (&diff_target[0]);
-              printf ("+");
-              route_print (&diff_target[1]);
+              route_print (route);
             }
-        }
-      else
-#endif /*0*/
-        {
-          if (diff_target[0].prefix_length != diff_target[1].prefix_length ||
-              memcmp (diff_target[0].prefix, diff_target[1].prefix,
-                      ((diff_target[0].prefix_length + 7) / 8)))
+          else
             {
-              if (! IS_ROUTE_NULL (&diff_target[0]))
+              struct ptree_node *x;
+              int plen = (qaf == AF_INET ? 32 : 128);
+              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[1]);
+              if (x)
                 {
-                  printf ("-");
-                  route_print (&diff_target[0]);
+                  /* only in left but also entirely reachable in right */
+                  struct bgp_route *other = x->data;
+                  if (other->flag == '>')
+                    {
+                      route->flag = '(';
+                      printf ("(");
+                    }
+                  else
+                    {
+                      route->flag = '-';
+                      printf ("-");
+                    }
+                  route_print (route);
                 }
-              if (! IS_ROUTE_NULL (&diff_target[1]))
+              else
                 {
-                  printf ("+");
-                  route_print (&diff_target[1]);
+                  /* only in left and unreachable in right (maybe partially) */
+                  route->flag = '<';
+                  printf ("<");
+                  route_print (route);
                 }
             }
         }
+
+      /* only in right */
+      if (IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
+          ! IS_ROUTE_NULL (&diff_table[1][sequence_number]))
+        {
+          route = &diff_table[1][sequence_number];
+          if (! udiff_lookup)
+            {
+              printf ("+");
+              route_print (route);
+            }
+          else
+            {
+              struct ptree_node *x;
+              int plen = (qaf == AF_INET ? 32 : 128);
+              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[0]);
+              if (x)
+                {
+                  /* only in right but also entirely reachable in left */
+                  struct bgp_route *other = x->data;
+                  if (other->flag == '<')
+                    {
+                      route->flag = ')';
+                      printf (")");
+                    }
+                  else
+                    {
+                      route->flag = '+';
+                      printf ("+");
+                    }
+                  route_print (route);
+                }
+              else
+                {
+                  /* only in right and unreachable in left (maybe partially) */
+                  route->flag = '>';
+                  printf (">");
+                  route_print (route);
+                }
+            }
+        }
+
     }
 }
 

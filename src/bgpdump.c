@@ -34,6 +34,8 @@
 #include "ptree.h"
 
 #include "bgpdump.h"
+#include "bgpdump_parse.h"
+#include "bgpdump_option.h"
 #include "bgpdump_file.h"
 #include "bgpdump_data.h"
 #include "bgpdump_peer.h"
@@ -44,109 +46,21 @@
 #include "bgpdump_ptree.h"
 #include "bgpdump_peerstat.h"
 
-extern char *optarg;
 extern int optind;
-extern int optopt;
-extern int opterr;
-extern int optreset;
 
 char *progname = NULL;
-
-#define BGPDUMP_VERSION "v2.0.1"
-
-#define BGPDUMP_BUFSIZ_DEFAULT "16MiB"
 
 struct mrt_info info;
 struct ptree *ptree[AF_INET6 + 1];
 
-const char *optstring = "hVvdmbPp:a:uckN:M:gl:L:46";
-const struct option longopts[] =
-{
-  { "help",         no_argument,       NULL, 'h' },
-  { "version",      no_argument,       NULL, 'V' },
-  { "verbose",      no_argument,       NULL, 'v' },
-  { "debug",        no_argument,       NULL, 'd' },
-  { "compat-mode",  no_argument,       NULL, 'm' },
-  { "brief",        no_argument,       NULL, 'b' },
-  { "peer-table",   no_argument,       NULL, 'P' },
-  { "peer",         required_argument, NULL, 'p' },
-  { "autnum",       required_argument, NULL, 'a' },
-  { "diff",         no_argument,       NULL, 'u' },
-  { "count",        no_argument,       NULL, 'c' },
-  { "peer-stat",    no_argument,       NULL, 'k' },
-  { "bufsiz",       required_argument, NULL, 'N' },
-  { "nroutes",      required_argument, NULL, 'M' },
-  { "benchmark",    no_argument,       NULL, 'g' },
-  { "lookup",       required_argument, NULL, 'l' },
-  { "lookup-file",  required_argument, NULL, 'L' },
-  { "ipv4",         no_argument,       NULL, '4' },
-  { "ipv6",         no_argument,       NULL, '6' },
-  { NULL,           0,                 NULL, 0   }
-};
-
-const char opthelp[] = "\
--h, --help                Display this help and exit.\n\
--V, --version             Print the program version.\n\
--v, --verbose             Print verbose information.\n\
--d, --debug               Display debug information.\n\
--m, --compat-mode         Display in libbgpdump -m compatible mode.\n\
--b, --brief               List information (i.e., simple prefix-nexthops).\n\
--P, --peer-table          Display the peer table and exit.\n\
--p, --peer <peer_index>   Specify peers by peer_index.\n\
-                          At most %d peers can be specified.\n\
--u, --diff                Shows unified diff. Specify two peers.\n\
--c, --count               Count route number.\n\
--k, --peer-stat           Shows prefix-length distribution.\n\
--N, --bufsiz              Specify the size of read buffer.\n\
-                          (default: %s)\n\
--M, --nroutes             Specify the size of the route_table.\n\
-                          (default: %s)\n\
--g, --benchmark           Measure the time to lookup.\n\
--l, --lookup <addr>       Specify lookup address.\n\
--L, --lookup-file <file>  Specify lookup address from a file.\n\
--4, --ipv4                Specify that the query is IPv4. (default)\n\
--6, --ipv6                Specify that the query is IPv6.\n\
-";
-
-int longindex;
-
-int verbose = 0;
-int detail = 0;
-int debug = 0;
-int show = 0;
-int compat_mode = 0;
-int brief = 0;
-int peer_table_only = 0;
-int udiff = 0;
-int route_count = 0;
-int stat = 0;
-unsigned long long bufsiz = 0;
-unsigned long long nroutes = 0;
-int benchmark = 0;
-int lookup = 0;
-char *lookup_addr = NULL;
-char *lookup_file = NULL;
-
 int safi = AF_INET;
 int qaf = AF_INET;
 
-#define AUTLIM 8
 unsigned long autnums[AUTLIM];
 int autsiz = 0;
 
-void
-usage ()
-{
-  printf ("Usage: %s [options] <file1> <file2> ...\n", progname);
-  printf (opthelp, PEER_INDEX_MAX, BGPDUMP_BUFSIZ_DEFAULT,
-          ROUTE_LIMIT_DEFAULT);
-}
-
-void
-version ()
-{
-  printf ("Version: %s.\n", BGPDUMP_VERSION);
-}
+struct bgp_route *diff_table[2];
+struct ptree *diff_ptree[2];
 
 void
 bgpdump_process (char *buf, size_t *data_len)
@@ -168,6 +82,7 @@ bgpdump_process (char *buf, size_t *data_len)
   if (debug)
     printf ("mrt message: length: %lu bytes.\n", len);
 
+  /* Process as long as entire MRT message is in the buffer */
   while (len && p + hsize + len <= data_end)
     {
       bgpdump_process_mrt_header (h, &info);
@@ -175,18 +90,17 @@ bgpdump_process (char *buf, size_t *data_len)
       switch (mrt_type)
         {
         case BGPDUMP_TYPE_TABLE_DUMP_V2:
-          bgpdump_process_table_dump_v2 (h, &info, data_end);
+          bgpdump_process_table_dump_v2 (h, &info, p + hsize + len);
           break;
         default:
           printf ("Not supported: mrt type: %d\n", mrt_type);
-          printf ("discarding %lu bytes data.\n", data_end - p);
-          *data_len = 0;
-          return;
+          printf ("discarding %lu bytes data.\n", hsize + len);
           break;
         }
 
       p += hsize + len;
 
+      len = 0;
       if (p + hsize < data_end)
         {
           h = (struct mrt_header *) p;
@@ -198,8 +112,6 @@ bgpdump_process (char *buf, size_t *data_len)
                       p, hsize, len, p + hsize + len, data_end);
             }
         }
-      else
-        len = 0;
     }
 
   /* move the partial, last-part data
@@ -210,98 +122,11 @@ bgpdump_process (char *buf, size_t *data_len)
   *data_len = rest;
 }
 
-unsigned long long
-resolv_number (char *notation, char **endptr)
-{
-  unsigned long long number, unit;
-  char digits[64];
-  unsigned long digit;
-  int len;
-  char *p;
-
-  snprintf (digits, sizeof (digits), "%s", notation);
-  len = strlen (digits);
-
-  unit = 1;
-  if (len > 3)
-    {
-      p = strstr (digits, "KiB");
-      if (! p)
-        p = strstr (digits, "MiB");
-      if (! p)
-        p = strstr (digits, "GiB");
-      if (! p)
-        p = strstr (digits, "TiB");
-      if (p)
-        {
-          switch (*p)
-            {
-            case 'K':
-              unit = 1024ULL;
-              break;
-            case 'M':
-              unit = 1024ULL * 1024ULL;
-              break;
-            case 'G':
-              unit = 1024ULL * 1024ULL * 1024ULL;
-              break;
-            case 'T':
-              unit = 1024ULL * 1024ULL * 1024ULL * 1024ULL;
-              break;
-            default:
-              unit = 1ULL;
-              break;
-            }
-          *p = '\0';
-          len = strlen (digits);
-        }
-    }
-  if (len > 1)
-    {
-      switch (digits[len - 1])
-        {
-        case 'k':
-        case 'K':
-          unit = 1000ULL;
-          digits[len - 1] = '\0';
-          break;
-        case 'm':
-        case 'M':
-          unit = 1000ULL * 1000ULL;
-          digits[len - 1] = '\0';
-          break;
-        case 'g':
-        case 'G':
-          unit = 1000ULL * 1000ULL * 1000ULL;
-          digits[len - 1] = '\0';
-          break;
-        case 'T':
-          unit = 1000ULL * 1000ULL * 1000ULL * 1000ULL;
-          digits[len - 1] = '\0';
-          break;
-        case 'P':
-          unit = 1000ULL * 1000ULL * 1000ULL * 1000ULL * 1000ULL;
-          digits[len - 1] = '\0';
-          break;
-        default:
-          break;
-        }
-    }
-
-  digit = strtoul (digits, endptr, 0);
-  number = digit * unit;
-
-  return number;
-}
-
 int
 main (int argc, char **argv)
 {
-  int ch;
   int status = 0;
   int i;
-  char *endptr;
-  int val;
   char *filename = NULL;
 
   progname = argv[0];
@@ -309,121 +134,7 @@ main (int argc, char **argv)
   bufsiz = resolv_number (BGPDUMP_BUFSIZ_DEFAULT, NULL);
   nroutes = resolv_number (ROUTE_LIMIT_DEFAULT, NULL);
 
-  while (1)
-    {
-      ch = getopt_long (argc, argv, optstring, longopts, &longindex);
-
-      if (ch == -1)
-        break;
-
-      switch (ch)
-        {
-        case 'h':
-          usage ();
-          exit (0);
-          break;
-        case 'V':
-          version ();
-          exit (0);
-          break;
-        case 'v':
-          verbose++;
-          if (verbose >= 2)
-            detail++;
-          break;
-        case 'd':
-          debug++;
-          break;
-        case 'm':
-          compat_mode++;
-          break;
-        case 'b':
-          brief++;
-          break;
-
-        case 'P':
-          peer_table_only++;
-          break;
-        case 'p':
-          val = strtoul (optarg, &endptr, 0);
-          if (*endptr != '\0')
-            {
-              printf ("malformed peer_index: %s\n", optarg);
-              exit (-1);
-            }
-          peer_spec_index[peer_spec_size % PEER_INDEX_MAX] = val;
-          peer_spec_size++;
-          break;
-        case 'a':
-          val = strtoul (optarg, &endptr, 0);
-          if (*endptr != '\0')
-            {
-              printf ("malformed autnum: %s\n", optarg);
-              exit (-1);
-            }
-          autnums[autsiz % AUTLIM] = val;
-          autsiz++;
-          break;
-
-        case 'u':
-          udiff++;
-          break;
-        case 'c':
-          route_count++;
-          break;
-        case 'k':
-          stat++;
-          break;
-
-        case 'N':
-          bufsiz = resolv_number (optarg, &endptr);
-          if (*endptr != '\0')
-            {
-              printf ("malformed bufsiz: %s\n", optarg);
-              exit (-1);
-            }
-          break;
-        case 'M':
-          nroutes = resolv_number (optarg, &endptr);
-          if (*endptr != '\0')
-            {
-              printf ("malformed nroutes: %s\n", optarg);
-              exit (-1);
-            }
-          break;
-
-        case 'l':
-          lookup++;
-          lookup_addr = optarg;
-          break;
-        case 'L':
-          lookup++;
-          lookup_file = optarg;
-          break;
-        case '4':
-          qaf = AF_INET;
-          break;
-        case '6':
-          qaf = AF_INET6;
-          break;
-
-        case 0:
-          /* Process flag pointer. */
-          break;
-        case ':':
-          fprintf (stderr, "A missing option argument.\n");
-          status = -1;
-          break;
-        case '?':
-          fprintf (stderr, "An unknown/ambiguous option.\n");
-          status = -1;
-          break;
-        default:
-          usage ();
-          status = -1;
-          break;
-        }
-    }
+  status = bgpdump_getopt (argc, argv);
 
   argc -= optind;
   argv += optind;
@@ -468,6 +179,21 @@ main (int argc, char **argv)
       route_init ();
       ptree[AF_INET] = ptree_create ();
       ptree[AF_INET6] = ptree_create ();
+    }
+
+  if (udiff)
+    {
+      diff_table[0] = malloc (nroutes * sizeof (struct bgp_route));
+      diff_table[1] = malloc (nroutes * sizeof (struct bgp_route));
+      assert (diff_table[0] && diff_table[1]);
+      memset (diff_table[0], 0, nroutes * sizeof (struct bgp_route));
+      memset (diff_table[1], 0, nroutes * sizeof (struct bgp_route));
+
+      if (udiff_lookup)
+        {
+          diff_ptree[0] = ptree_create ();
+          diff_ptree[1] = ptree_create ();
+        }
     }
 
   /* for each rib files. */
@@ -572,6 +298,18 @@ main (int argc, char **argv)
       ptree_delete (ptree[AF_INET]);
       ptree_delete (ptree[AF_INET6]);
       route_finish ();
+    }
+
+  if (udiff)
+    {
+      free (diff_table[0]);
+      free (diff_table[1]);
+
+      if (lookup)
+        {
+          ptree_delete (diff_ptree[0]);
+          ptree_delete (diff_ptree[1]);
+        }
     }
 
   if (stat)
