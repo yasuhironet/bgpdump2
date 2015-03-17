@@ -834,6 +834,48 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
             }
         }
 
+      /* exist in both */
+      if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
+          ! IS_ROUTE_NULL (&diff_table[1][sequence_number]) &&
+          diff_table[0][sequence_number].prefix_length > 0)
+        {
+          int plen = diff_table[0][sequence_number].prefix_length - 1;
+
+          if (udiff_lookup)
+            {
+              struct ptree_node *x;
+
+              route = &diff_table[0][sequence_number];
+              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[1]);
+              if (x)
+                {
+                  /* the shorter in right was '>' */
+                  struct bgp_route *other = x->data;
+                  if (other->flag == '>')
+                    {
+                      route->flag = '(';
+                      printf ("(");
+                      route_print (route);
+                    }
+                }
+
+              route = &diff_table[1][sequence_number];
+              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[0]);
+              if (x)
+                {
+                  /* the shorter in left was '<' */
+                  struct bgp_route *other = x->data;
+                  if (other->flag == '<')
+                    {
+                      route->flag = ')';
+                      printf (")");
+                      route_print (route);
+                    }
+                }
+
+            }
+        }
+
     }
 }
 

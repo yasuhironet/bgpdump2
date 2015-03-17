@@ -55,11 +55,11 @@ $echo $peerlist
 
 
 outprefix=$outdir/route-diff-$filename-p$peerid
-$bgpdump $ribfile -P | tee $outprefix-peer-table.txt
-$bgpdump $ribfile -k | tee $outprefix-stat.txt
+$bgpdump $ribfile -P 2>&1 | tee $outprefix-peer-table.txt
+$bgpdump $ribfile -k 2>&1 | tee $outprefix-stat.txt
 for i in $peerlist; do
-    $bgpdump $ribfile -U -r -p $peerid -p $i | tee $outprefix-p$i-detail.txt
-    $bgpdump $ribfile -u -r -p $peerid -p $i | tee $outprefix-p$i-diff.txt
-    cat $outprefix-p$i-diff.txt | grep '^[>(]' | tee $outprefix-p$i-focus.txt
+    $bgpdump $ribfile -U -r -p $peerid -p $i 2>&1 | tee $outprefix-p$i-detail.txt
+    $bgpdump $ribfile -u -r -p $peerid -p $i 2>&1 | tee $outprefix-p$i-diff.txt
+    cat $outprefix-p$i-diff.txt | grep '^[>(]' 2>&1 | tee $outprefix-p$i-focus.txt
 done 
 
