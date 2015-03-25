@@ -103,15 +103,28 @@ bfeof (void *file)
 void *
 gopen (const char *filename, const char *mode)
 {
-  gzFile *file;
-  file = gzopen (filename, mode);
-  return file;
+  gzFile *f;
+  f = gzopen (filename, mode);
+  if (! f)
+    {
+      fprintf (stderr, "gzopen() failed: %s\n", strerror (errno));
+      return NULL;
+    }
+  return f;
 }
 
 size_t
 gread (void *ptr, size_t size, size_t nitems, void *file)
 {
-  return 0;
+  gzFile *f = (gzFile *) file;
+  int ret = 0;
+  ret = gzread (f, ptr, size * nitems);
+  if (ret < 0)
+    {
+      fprintf (stderr, "gzread failed.\n");
+      return ret;
+    }
+  return ret;
 }
 
 size_t
@@ -123,6 +136,8 @@ gwrite (void *ptr, size_t size, size_t nitems, void *file)
 int
 gclose (void *file)
 {
+  gzFile *f = (gzFile *) file;
+  gzclose (f);
   return 0;
 }
 

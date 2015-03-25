@@ -1,4 +1,8 @@
 
+2015-03-25  Yasuhiro Ohara  <yasu@nttv6.jp>
+
+	* src/bgpdump_file.c: support for gzip file.
+
 2015-03-17  Yasuhiro Ohara  <yasu@nttv6.jp>
 
 	* src/bgpdump_data.c: bug fix for udiffs of '(' prefixes.
