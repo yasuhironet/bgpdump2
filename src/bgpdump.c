@@ -227,7 +227,11 @@ main (int argc, char **argv)
 
           /* end of file. */
           if (ret == 0 && method->feof (file))
-            break;
+            {
+              if (debug)
+                printf ("read: end-of-file.\n");
+              break;
+            }
 
           bgpdump_process (buf, &datalen);
 

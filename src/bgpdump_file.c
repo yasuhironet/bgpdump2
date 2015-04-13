@@ -30,7 +30,7 @@
 
 struct access_method methods[] =
 {
-  { (fopen_t)fopen, (fread_t)fread, (fwrite_t)fwrite,
+  { (fopen_t)fopen, (fread_t)fread_wrap, (fwrite_t)fwrite,
     (fclose_t)fclose, (feof_t)feof },
   { (fopen_t)bopen, (fread_t)bread, (fwrite_t)bwrite,
     (fclose_t)bclose, (feof_t)bfeof },
@@ -40,6 +40,25 @@ struct access_method methods[] =
 
 struct fhandle fhandle;
 int bzerror;
+
+size_t
+fread_wrap (void *ptr, size_t size, size_t nitems, void *file)
+{
+  size_t ret;
+  FILE *f = (FILE *) file;
+  ret = fread (ptr, size, nitems, f);
+  if (ferror (file))
+    {
+      fprintf (stderr, "fread error.\n");
+      return 0;
+    }
+  if (feof (file))
+    return 0;
+
+  ret *= size;
+  //printf ("fread: ret: %ld\n", ret);
+  return ret;
+}
 
 void *
 bopen (const char *filename, const char *mode)
@@ -155,7 +174,7 @@ get_file_format (char *filename)
     }
   if (! strcmp (p, ".gz"))
     return FORMAT_GZIP;
-  return FORMAT_UNKNOWN;
+  return FORMAT_RAW;
 }
 
 struct access_method *

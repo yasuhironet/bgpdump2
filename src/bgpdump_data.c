@@ -472,15 +472,15 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
           break;
 
         case LOCAL_PREF:
-          route->localpref = ntohl (*(unsigned long *)p);
+          route->localpref = ntohl (*(uint32_t *)p);
           if (show && detail)
-            printf ("  local-pref: %lu\n", (unsigned long) route->localpref);
+            printf ("  local-pref: %u\n", (uint32_t) route->localpref);
           break;
 
         case MULTI_EXIT_DISC:
-          route->med = ntohl (*(unsigned long *)p);
+          route->med = ntohl (*(uint32_t *)p);
           if (show && detail)
-            printf ("  med: %lu\n", (unsigned long) route->med);
+            printf ("  med: %u\n", (uint32_t) route->med);
           break;
 
         case COMMUNITY:

@@ -48,6 +48,8 @@ struct fhandle
   void *file2;
 };
 
+size_t fread_wrap (void *ptr, size_t size, size_t nitems, void *file);
+
 void *bopen (const char *filename, const char *mode);
 size_t bread (void *ptr, size_t size, size_t nitems, void *file);
 size_t bwrite (void *ptr, size_t size, size_t nitems, void *file);
