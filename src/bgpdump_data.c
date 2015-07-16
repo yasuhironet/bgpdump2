@@ -601,6 +601,9 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
         {
           if (route_count)
             peer_table[peer_index].route_count++;
+
+          if (plen_dist)
+            peer_table[peer_index].route_count_by_plen[prefix_length]++;
         }
 
       struct bgp_route route;
@@ -608,7 +611,8 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
       memcpy (route.prefix, prefix, (prefix_length + 7) / 8);
       route.prefix_length = prefix_length;
 
-      if (brief || show || lookup || udiff || stat || compat_mode || autsiz)
+      if (brief || show || lookup || udiff || stat ||
+          compat_mode || autsiz || heatmap)
         bgpdump_process_bgp_attributes (&route, p, p + attribute_length);
 
       /* Now all the BGP attributes for this rib_entry are processed. */
@@ -633,7 +637,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
-      if (lookup)
+      if (lookup || heatmap)
         {
           struct bgp_route *rp;
           if (route_size < route_limit)

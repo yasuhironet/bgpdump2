@@ -35,7 +35,7 @@ extern int optopt;
 extern int opterr;
 extern int optreset;
 
-const char *optstring = "hVvdmbPp:a:uUrckN:M:gl:L:46";
+const char *optstring = "hVvdmbPp:a:uUrcjkN:M:gl:L:46H:";
 const struct option longopts[] =
 {
   { "help",         no_argument,       NULL, 'h' },
@@ -51,6 +51,7 @@ const struct option longopts[] =
   { "diff-verbose", no_argument,       NULL, 'U' },
   { "diff-table",   no_argument,       NULL, 'r' },
   { "count",        no_argument,       NULL, 'c' },
+  { "plen-dist",    no_argument,       NULL, 'j' },
   { "peer-stat",    no_argument,       NULL, 'k' },
   { "bufsiz",       required_argument, NULL, 'N' },
   { "nroutes",      required_argument, NULL, 'M' },
@@ -59,6 +60,7 @@ const struct option longopts[] =
   { "lookup-file",  required_argument, NULL, 'L' },
   { "ipv4",         no_argument,       NULL, '4' },
   { "ipv6",         no_argument,       NULL, '6' },
+  { "heatmap",      required_argument, NULL, 'H' },
   { NULL,           0,                 NULL, 0   }
 };
 
@@ -75,7 +77,8 @@ const char opthelp[] = "\
 -u, --diff                Shows unified diff. Specify two peers.\n\
 -U, --diff-verbose        Shows the detailed info of unified diff.\n\
 -r, --diff-table          Specify to create diff route_table.\n\
--c, --count               Count route number.\n\
+-c, --count               Count the route number.\n\
+-j, --plen-dist           Count the route number by prefixlen.\n\
 -k, --peer-stat           Shows prefix-length distribution.\n\
 -N, --bufsiz              Specify the size of read buffer.\n\
                           (default: %s)\n\
@@ -86,6 +89,7 @@ const char opthelp[] = "\
 -L, --lookup-file <file>  Specify lookup address from a file.\n\
 -4, --ipv4                Specify that the query is IPv4. (default)\n\
 -6, --ipv6                Specify that the query is IPv6.\n\
+-H, --heatmap <file-prefix> Produces the heatmap.\n\
 ";
 
 int longindex;
@@ -101,6 +105,7 @@ int udiff = 0;
 int udiff_verbose = 0;
 int udiff_lookup = 0;
 int route_count = 0;
+int plen_dist = 0;
 int stat = 0;
 unsigned long long bufsiz = 0;
 unsigned long long nroutes = 0;
@@ -108,6 +113,8 @@ int benchmark = 0;
 int lookup = 0;
 char *lookup_addr = NULL;
 char *lookup_file = NULL;
+int heatmap = 0;
+char *heatmap_prefix;
 
 extern char *progname;
 extern int safi;
@@ -207,6 +214,9 @@ bgpdump_getopt (int argc, char **argv)
         case 'c':
           route_count++;
           break;
+        case 'j':
+          plen_dist++;
+          break;
         case 'k':
           stat++;
           break;
@@ -241,6 +251,11 @@ bgpdump_getopt (int argc, char **argv)
           break;
         case '6':
           qaf = AF_INET6;
+          break;
+
+        case 'H':
+          heatmap++;
+          heatmap_prefix = optarg;
           break;
 
         case 0:
