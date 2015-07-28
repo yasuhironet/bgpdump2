@@ -97,7 +97,7 @@ am_bgpdump2_OBJECTS = bgpdump_file.$(OBJEXT) bgpdump_peer.$(OBJEXT) \
 	bgpdump_savefile.$(OBJEXT) bgpdump_query.$(OBJEXT) \
 	bgpdump_ptree.$(OBJEXT) bgpdump_peerstat.$(OBJEXT) \
 	bgpdump_option.$(OBJEXT) bgpdump_parse.$(OBJEXT) \
-	bgpdump.$(OBJEXT)
+	bgpdump_udiff.$(OBJEXT) bgpdump.$(OBJEXT)
 bgpdump2_OBJECTS = $(am_bgpdump2_OBJECTS)
 bgpdump2_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -248,6 +248,7 @@ bgpdump2_SOURCES = \
   benchmark.c ptree.c queue.c \
   bgpdump_savefile.c bgpdump_query.c bgpdump_ptree.c \
   bgpdump_peerstat.c bgpdump_option.c bgpdump_parse.c \
+  bgpdump_udiff.c \
   bgpdump.c
 
 noinst_HEADERS = \
@@ -255,6 +256,7 @@ noinst_HEADERS = \
   benchmark.h ptree.h queue.h \
   bgpdump_savefile.h bgpdump_query.h bgpdump_ptree.h \
   bgpdump_peerstat.h bgpdump_option.h bgpdump_parse.h \
+  bgpdump_udiff.h \
   bgpdump.h
 
 all: all-am
@@ -356,6 +358,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_query.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_route.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_savefile.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bgpdump_udiff.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/queue.Po@am__quote@
 

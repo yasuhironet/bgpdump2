@@ -16,40 +16,11 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _BGPDUMP_PEER_H_
-#define _BGPDUMP_PEER_H_
+#ifndef _BGPDUMP_UDIFF_H_
+#define _BGPDUMP_UDIFF_H_
 
-struct peer
-{
-  struct in_addr bgp_id;
-  struct in_addr ipv4_addr;
-  struct in6_addr ipv6_addr;
-  uint32_t asnumber;
-  uint64_t route_count;
-  uint64_t route_count_by_plen[33];
-};
+void
+bgpdump_udiff_compare (uint32_t sequence_number);
 
-#define PEER_MAX 128
-
-#define PEER_INDEX_MAX 8
-
-extern struct peer peer_null;
-extern struct peer peer_table[];
-extern int peer_size;
-
-extern int peer_spec_index[];
-extern int peer_spec_size;
-
-extern struct bgp_route *peer_route_table[];
-extern int peer_route_size[];
-extern struct ptree *peer_ptree[];
-
-void peer_table_init ();
-void peer_print (struct peer *peer);
-void peer_route_count_show ();
-void peer_route_count_clear ();
-void peer_route_count_by_plen_show ();
-void peer_route_count_by_plen_clear ();
-
-#endif /*_BGPDUMP_PEER_H_*/
+#endif /*_BGPDUMP_UDIFF_H_*/
 

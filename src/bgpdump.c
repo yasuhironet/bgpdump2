@@ -38,12 +38,12 @@
 #include "bgpdump_option.h"
 #include "bgpdump_file.h"
 #include "bgpdump_data.h"
-#include "bgpdump_peer.h"
 #include "bgpdump_route.h"
 
 #include "bgpdump_savefile.h"
 #include "bgpdump_query.h"
 #include "bgpdump_ptree.h"
+#include "bgpdump_peer.h"
 #include "bgpdump_peerstat.h"
 
 extern int optind;
@@ -160,8 +160,10 @@ d2xy (u_int64_t n, u_int64_t d, u_int32_t *x, u_int32_t *y)
 }
 
 void
-heatmap_image_hilbert_guide ()
+heatmap_image_hilbert_gplot (int peer_spec_i)
 {
+  int peer_index = peer_spec_index[peer_spec_i];
+
   unsigned int a0;
   unsigned long val = 0;
 
@@ -174,8 +176,9 @@ heatmap_image_hilbert_guide ()
   int textymargin = 5;
 
   FILE *fp;
-  char filename[64];
-  snprintf (filename, sizeof (filename), "%s.gp", heatmap_prefix);
+  char filename[256];
+  snprintf (filename, sizeof (filename), "%s-p%d.gp",
+            heatmap_prefix, peer_index);
   fp = fopen (filename, "w+");
   if (! fp)
     {
@@ -231,11 +234,25 @@ heatmap_image_hilbert_guide ()
               index, xs, ys, xe, ye);
     }
 
+  int asnum;
+  char bgpid[32], bgpaddr[32];
+  asnum = peer_table[peer_index].asnumber;
+  inet_ntop (AF_INET, &peer_table[peer_index].bgp_id,
+             bgpid, sizeof (bgpid));
+  inet_ntop (AF_INET, &peer_table[peer_index].ipv4_addr,
+             bgpaddr, sizeof (bgpaddr));
+
   fprintf (fp, "\n");
-  fprintf (fp, "set title \"%s\"\n", heatmap_prefix);
+  fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d\"\n",
+           heatmap_prefix, peer_index, bgpid, bgpaddr, asnum);
   fprintf (fp, "set term postscript eps enhanced color\n");
-  fprintf (fp, "set output '%s.eps'\n", heatmap_prefix);
-  fprintf (fp, "splot '%s.dat' u 1:2:3 with image notitle\n", heatmap_prefix);
+  fprintf (fp, "set output '%s-p%d.eps'\n", heatmap_prefix, peer_index);
+  fprintf (fp, "splot '%s-p%d.dat' u 1:2:3 with image notitle\n",
+           heatmap_prefix, peer_index);
+  fprintf (fp, "\n");
+  fprintf (fp, "set term png\n");
+  fprintf (fp, "set output '%s-p%d.png'\n", heatmap_prefix, peer_index);
+  fprintf (fp, "replot\n");
   fprintf (fp, "\n");
 
   fclose (fp);
@@ -245,8 +262,11 @@ heatmap_image_hilbert_guide ()
 
 
 void
-heatmap_image_hilbert (struct ptree *ptree)
+heatmap_image_hilbert_data (int peer_spec_i)
 {
+  int peer_index = peer_spec_index[peer_spec_i];
+  struct ptree *ptree = peer_ptree[peer_spec_i];
+
   unsigned int a0, a1, a2;
   struct in_addr addr = { 0 };
   unsigned long val = 0;
@@ -301,8 +321,9 @@ heatmap_image_hilbert (struct ptree *ptree)
   //printf ("\n");
 
   FILE *fp;
-  char filename[64];
-  snprintf (filename, sizeof (filename), "%s.dat", heatmap_prefix);
+  char filename[256];
+  snprintf (filename, sizeof (filename), "%s-p%d.dat",
+            heatmap_prefix, peer_index);
 
   fp = fopen (filename, "w+");
   if (! fp)
@@ -318,67 +339,6 @@ heatmap_image_hilbert (struct ptree *ptree)
 
   fclose (fp);
   printf ("%s is written.\n", filename);
-}
-
-void heatmap_image_test (struct ptree *ptree)
-{
-  int i;
-  u_int32_t x, y;
-  x = y = 0;
-  int array[16][16];
-
-  for (i = 0; i < 256; i++)
-    {
-      d2xy (1 << 4, i, &x, &y);
-      //y = 15 - y;
-      //printf ("i: %d, (%d, %d)\n", i, x, y);
-      //printf ("%d %d %d\n", x, y, i);
-      array[x][y] = i;
-    }
-
-  for (x = 0; x < 16; x++)
-    for (y = 0; y < 16; y++)
-      printf ("%d %d %d\n", x, y, array[x][y]);
-}
-
-void
-heatmap_image_linear (struct ptree *ptree)
-{
-  unsigned int a0, a1, a2;
-  struct in_addr addr = { 0 };
-  unsigned char *p = (unsigned char *) &addr;
-  struct ptree_node *node;
-  unsigned long count = 0;
-
-  for (a0 = 0; a0 < 256; a0++)
-    {
-      p[0] = (unsigned char) a0;
-      for (a1 = 0; a1 < 256; a1++)
-        {
-          p[1] = (unsigned char) a1;
-
-          count = 0;
-          for (a2 = 0; a2 < 256; a2++)
-            {
-              p[2] = (unsigned char) a2;
-              printf ("heat: addr: %s\n", inet_ntoa (addr));
-
-              node = ptree_search ((char *)&addr, 24, ptree);
-              if (node)
-                {
-                  struct bgp_route *route = node->data;
-                  route_print (route);
-                  count++;
-                }
-              else
-                {
-                  printf ("no route.\n");
-                }
-            }
-
-          printf ("%u %u %lu\n", a0, a1, count);
-        }
-    }
 }
 
 int
@@ -433,7 +393,18 @@ main (int argc, char **argv)
     }
 
   peer_table_init ();
-  if (lookup || heatmap)
+
+  if (peer_spec_size)
+    {
+      for (i = 0; i < peer_spec_size; i++)
+        {
+          peer_route_table[i] = route_table_create ();
+          peer_route_size[i] = 0;
+          peer_ptree[i] = ptree_create ();
+        }
+    }
+
+  if (lookup)
     {
       route_init ();
       ptree[AF_INET] = ptree_create ();
@@ -563,8 +534,11 @@ main (int argc, char **argv)
 
   if (heatmap)
     {
-      heatmap_image_hilbert_guide ();
-      heatmap_image_hilbert (ptree[qaf]);
+      for (i = 0; i < peer_spec_size; i++)
+        {
+          heatmap_image_hilbert_gplot (i);
+          heatmap_image_hilbert_data (i);
+        }
     }
 
   if (lookup)

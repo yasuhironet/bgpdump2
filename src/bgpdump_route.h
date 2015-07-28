@@ -54,6 +54,8 @@ extern char addr_none[];
 void route_init ();
 void route_finish ();
 
+struct bgp_route *route_table_create ();
+
 void route_print_brief (struct bgp_route *route);
 void route_print (struct bgp_route *route);
 void route_print_compat (struct bgp_route *route);

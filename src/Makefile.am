@@ -6,6 +6,7 @@ bgpdump2_SOURCES = \
   benchmark.c ptree.c queue.c \
   bgpdump_savefile.c bgpdump_query.c bgpdump_ptree.c \
   bgpdump_peerstat.c bgpdump_option.c bgpdump_parse.c \
+  bgpdump_udiff.c \
   bgpdump.c
 
 noinst_HEADERS = \
@@ -13,5 +14,6 @@ noinst_HEADERS = \
   benchmark.h ptree.h queue.h \
   bgpdump_savefile.h bgpdump_query.h bgpdump_ptree.h \
   bgpdump_peerstat.h bgpdump_option.h bgpdump_parse.h \
+  bgpdump_udiff.h \
   bgpdump.h
 

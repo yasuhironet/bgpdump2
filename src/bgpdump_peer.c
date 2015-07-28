@@ -25,6 +25,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "bgpdump_route.h"
+#include "bgpdump_ptree.h"
+
 #include "bgpdump_peer.h"
 #include "bgpdump_data.h"
 
@@ -34,6 +37,10 @@ int peer_size = 0;
 
 int peer_spec_index[PEER_INDEX_MAX];
 int peer_spec_size = 0;
+
+struct bgp_route *peer_route_table[PEER_INDEX_MAX];
+int peer_route_size[PEER_INDEX_MAX];
+struct ptree *peer_ptree[PEER_INDEX_MAX];
 
 void
 peer_table_init ()

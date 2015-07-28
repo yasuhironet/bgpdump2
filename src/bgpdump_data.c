@@ -33,6 +33,7 @@
 #include "bgpdump_peer.h"
 #include "bgpdump_route.h"
 #include "bgpdump_peerstat.h"
+#include "bgpdump_udiff.h"
 
 #include "queue.h"
 #include "ptree.h"
@@ -210,6 +211,23 @@ bgpdump_table_v2_peer_entry (int index, char *p, char *data_end, int *retsize)
     }
   else
     printf ("peer_table overflow.\n");
+
+  if (autsiz)
+    {
+      int i;
+      for (i = 0; i < autsiz; i++)
+        {
+          if (peer_table[index].asnumber == autnums[i] &&
+              peer_spec_size < PEER_INDEX_MAX)
+            {
+              peer_spec_index[peer_spec_size] = index;
+              peer_route_table[peer_spec_size] = route_table_create ();
+              peer_route_size[peer_spec_size] = 0;
+              peer_ptree[peer_spec_size] = ptree_create ();
+              peer_spec_size++;
+            }
+        }
+    }
 
   *retsize = total;
 }
@@ -419,6 +437,7 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
                       route->origin_as = as_path;
                     }
 
+#if 0
                   if (autsiz)
                     {
                       int j;
@@ -439,6 +458,7 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
                             }
                         }
                     }
+#endif
 
                   r += sizeof (as_path);
                 }
@@ -580,11 +600,15 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
   attribute_length = ntohs (*(uint16_t *)p);
   p += size;
 
+  int peer_spec_i = 0;
   peer_match = 0;
   for (i = 0; i < MIN(peer_spec_size, PEER_INDEX_MAX); i++)
     {
       if (peer_index == peer_spec_index[i])
-        peer_match++;
+        {
+          peer_spec_i = i;
+          peer_match++;
+        }
     }
 
   if (peer_spec_size && debug)
@@ -607,6 +631,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
         }
 
       struct bgp_route route;
+
       memset (&route, 0, sizeof (route));
       memcpy (route.prefix, prefix, (prefix_length + 7) / 8);
       route.prefix_length = prefix_length;
@@ -637,6 +662,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
+#if 0
       if (lookup || heatmap)
         {
           struct bgp_route *rp;
@@ -655,6 +681,33 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
           ptree_add ((char *)&rp->prefix, rp->prefix_length,
                      (void *)rp, ptree[safi]);
         }
+#else
+
+      if (peer_spec_size)
+        {
+          struct bgp_route *rp;
+          int *route_size = &peer_route_size[peer_spec_i];
+          if (*route_size >= nroutes)
+            {
+              printf ("route table overflow.\n");
+              *route_size = nroutes - 1;
+            }
+
+          struct bgp_route *rpp;
+          rpp = peer_route_table[peer_spec_i];
+          rp = &rpp[sequence_number];
+          //rp = &peer_route_table[peer_index][sequence_number];
+          *route_size = *route_size + 1;
+          //(*route_size)++;
+
+          //route_print (&route);
+          memcpy (rp, &route, sizeof (struct bgp_route));
+
+          if (safi == AF_INET)
+            ptree_add ((char *)&rp->prefix, rp->prefix_length,
+                       (void *)rp, peer_ptree[peer_spec_i]);
+        }
+#endif
 
       if (udiff)
         {
@@ -737,6 +790,9 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
 
   if (udiff)
     {
+      bgpdump_udiff_compare (sequence_number);
+
+#if 0
       struct bgp_route *route;
 
       if (udiff_verbose)
@@ -879,6 +935,7 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
 
             }
         }
+#endif /*0*/
 
     }
 }

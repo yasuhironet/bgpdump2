@@ -55,6 +55,17 @@ route_finish ()
   free (routes);
 }
 
+struct bgp_route *
+route_table_create ()
+{
+  struct bgp_route *table;
+  int table_size = nroutes * sizeof (struct bgp_route);
+  table = malloc (table_size);
+  assert (table);
+  memset (table, 0, table_size);
+  return table;
+}
+
 void
 route_print_brief (struct bgp_route *route)
 {
