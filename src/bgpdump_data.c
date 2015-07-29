@@ -220,6 +220,8 @@ bgpdump_table_v2_peer_entry (int index, char *p, char *data_end, int *retsize)
           if (peer_table[index].asnumber == autnums[i] &&
               peer_spec_size < PEER_INDEX_MAX)
             {
+              printf ("peer_spec_index[%d]: register peer %d, asn %d\n",
+                       peer_spec_size, index, peer_table[index].asnumber);
               peer_spec_index[peer_spec_size] = index;
               peer_route_table[peer_spec_size] = route_table_create ();
               peer_route_size[peer_spec_size] = 0;
