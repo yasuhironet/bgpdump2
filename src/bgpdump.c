@@ -348,6 +348,102 @@ heatmap_image_hilbert_data (int peer_spec_i)
   printf ("%s is written.\n", filename);
 }
 
+void
+heatmap_image_hilbert_data_aspath_max_distance (int peer_spec_i)
+{
+  int peer_index = peer_spec_index[peer_spec_i];
+  struct ptree *ptree = peer_ptree[peer_spec_i];
+
+  unsigned int a0, a1, a2;
+  struct in_addr addr = { 0 };
+  unsigned long val = 0;
+  unsigned char *p = (unsigned char *) &addr;
+  struct ptree_node *node;
+  //unsigned long count = 0;
+  unsigned long max = 0;
+
+  unsigned int array[256][256];
+
+  u_int32_t x, y;
+  x = y = 0;
+
+  for (a0 = 0; a0 < 256; a0++)
+    {
+      p[0] = (unsigned char) a0;
+      for (a1 = 0; a1 < 256; a1++)
+        {
+          p[1] = (unsigned char) a1;
+
+          //count = 0;
+          max = 0;
+
+          for (a2 = 0; a2 < 256; a2++)
+            {
+              p[2] = (unsigned char) a2;
+              //printf ("heat: addr: %s\n", inet_ntoa (addr));
+
+              node = ptree_search ((char *)&addr, 24, ptree);
+              if (node)
+                {
+                  struct bgp_route *route = node->data;
+                  //route_print (route);
+                  //count++;
+                  if (max < route->path_size)
+                    max = route->path_size;
+                }
+              else
+                {
+                  //printf ("no route.\n");
+                }
+            }
+
+          p[2] = 0;
+          val = (a0 << 8) + a1;
+          d2xy (1ULL << 16, val, &x, &y);
+#if 0
+          printf ("val: %lu, x: %lu, y: %lu, count: %lu\n",
+                  val, (unsigned long) x, (unsigned long) y,
+                  (unsigned long) count);
+#endif
+#if 1
+          printf ("val: %lu, x: %lu, y: %lu, max: %lu\n",
+                  val, (unsigned long) x, (unsigned long) y,
+                  (unsigned long) max);
+#endif
+
+          //array[x][y] = count;
+          int adjust = 16;
+          if (max * adjust > 255)
+            array[x][y] = 255;
+          else
+            array[x][y] = max * adjust;
+        }
+    }
+
+  //printf ("\n");
+
+  FILE *fp;
+  char filename[256];
+  snprintf (filename, sizeof (filename), "%s-p%d.dat",
+            heatmap_prefix, peer_index);
+
+  fp = fopen (filename, "w+");
+  if (! fp)
+    {
+      fprintf (stderr, "can't open file %s: %s\n",
+               filename, strerror (errno));
+      return;
+    }
+
+  for (a0 = 0; a0 < 256; a0++)
+    for (a1 = 0; a1 < 256; a1++)
+      fprintf (fp, "%u %u %u\n", a0, a1, array[a0][a1]);
+
+  fclose (fp);
+  printf ("%s is written.\n", filename);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -523,14 +619,19 @@ main (int argc, char **argv)
   /* query to route_table (ptree). */
   if (lookup)
     {
-      if (verbose)
-        ptree_list (ptree[qaf]);
-
       if (benchmark)
         benchmark_start ();
 
       if (lookup)
-        ptree_query (ptree[qaf], query_table, query_size);
+        {
+          for (i = 0; i < peer_spec_size; i++)
+            {
+              printf ("peer %d:\n", peer_spec_index[i]);
+              if (verbose)
+                ptree_list (peer_ptree[i]);
+              ptree_query (peer_ptree[i], query_table, query_size);
+            }
+        }
 
       if (benchmark)
         {
@@ -545,6 +646,7 @@ main (int argc, char **argv)
         {
           heatmap_image_hilbert_gplot (i);
           heatmap_image_hilbert_data (i);
+          //heatmap_image_hilbert_data_aspath_max_distance (i);
         }
     }
 
