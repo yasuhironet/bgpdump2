@@ -952,14 +952,14 @@ bgpdump_process_table_dump_v2 (struct mrt_header *h, struct mrt_info *info,
       bgpdump_process_table_v2_peer_index_table (h, info, data_end);
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV4_UNICAST:
-      if (! peer_table_only)
+      if (! peer_table_only && qaf == AF_INET )
         {
           safi = AF_INET;
           bgpdump_process_table_v2_rib_unicast (h, info, data_end);
         }
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV6_UNICAST:
-      if (! peer_table_only)
+      if (! peer_table_only && qaf == AF_INET6 )
         {
           safi = AF_INET6;
           bgpdump_process_table_v2_rib_unicast (h, info, data_end);
