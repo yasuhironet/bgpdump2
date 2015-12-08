@@ -35,7 +35,7 @@ struct access_method methods[] =
   { (fopen_t)bopen, (fread_t)bread, (fwrite_t)bwrite,
     (fclose_t)bclose, (feof_t)bfeof },
   { (fopen_t)gopen, (fread_t)gread, (fwrite_t)gwrite,
-    (fclose_t)gclose, (feof_t)feof },
+    (fclose_t)gclose, (feof_t)gzeof },
 };
 
 struct fhandle fhandle;
