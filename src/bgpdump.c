@@ -499,6 +499,8 @@ main (int argc, char **argv)
 
   if (peer_spec_size)
     {
+      if (peer_spec_size >= PEER_INDEX_MAX)
+        peer_spec_size = PEER_INDEX_MAX;
       for (i = 0; i < peer_spec_size; i++)
         {
           peer_route_table[i] = route_table_create ();
