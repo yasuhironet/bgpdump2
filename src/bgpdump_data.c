@@ -288,6 +288,9 @@ bgpdump_process_table_v2_peer_index_table (struct mrt_header *h,
       bgpdump_table_v2_peer_entry (i, p, data_end, &size);
       p += size;
     }
+
+  if (peer_table_only)
+    exit (0);
 }
 
 void
@@ -476,7 +479,7 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
           if (show && detail)
             {
               char buf[32];
-              inet_ntop (safi, route->nexthop, buf, sizeof (buf));
+              inet_ntop (route->af, route->nexthop, buf, sizeof (buf));
               printf ("  nexthop: %s\n", buf);
             }
           break;
@@ -577,7 +580,7 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
 void
 bgpdump_process_table_v2_rib_entry (int index, char **q,
                                     struct mrt_info *info,
-                                    char *data_end)
+                                    char *data_end, int af)
 {
   char *p = *q;
   int size;
@@ -635,6 +638,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
       struct bgp_route route;
 
       memset (&route, 0, sizeof (route));
+      route.af = af;
       memcpy (route.prefix, prefix, (prefix_length + 7) / 8);
       route.prefix_length = prefix_length;
 
@@ -664,27 +668,6 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
-#if 0
-      if (lookup || heatmap)
-        {
-          struct bgp_route *rp;
-          if (route_size < route_limit)
-            {
-              rp = &routes[route_size++];
-            }
-          else
-            {
-              rp = &routes[route_size - 1];
-              printf ("route table overflow.\n");
-            }
-
-          memcpy (rp, &route, sizeof (struct bgp_route));
-
-          ptree_add ((char *)&rp->prefix, rp->prefix_length,
-                     (void *)rp, ptree[safi]);
-        }
-#else
-
       if (peer_spec_size)
         {
           struct bgp_route *rp;
@@ -705,11 +688,10 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
           //route_print (&route);
           memcpy (rp, &route, sizeof (struct bgp_route));
 
-          if (safi == AF_INET)
+          if (af == AF_INET)
             ptree_add ((char *)&rp->prefix, rp->prefix_length,
                        (void *)rp, peer_ptree[peer_spec_i]);
         }
-#endif
 
       if (udiff)
         {
@@ -726,12 +708,24 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
-      if (brief)
-        route_print_brief (&route);
-      else if (show)
-        route_print (&route);
-      else if (compat_mode)
-        route_print_compat (&route);
+      if (peer_spec_size == 1)
+        {
+          if (brief)
+            route_print_brief (&route);
+          else if (show)
+            route_print (&route);
+          else if (compat_mode)
+            route_print_compat (&route);
+        }
+      else
+        {
+          if (brief)
+            route_print_brief2 (peer_index, &route);
+          else if (show)
+            route_print2 (peer_index, &route);
+          else if (compat_mode)
+            route_print_compat2 (peer_index, &route);
+        }
     }
 
   BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)
@@ -743,7 +737,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
 void
 bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
                                       struct mrt_info *info,
-                                      char *data_end)
+                                      char *data_end, int af)
 {
   char *p;
   int size;
@@ -779,7 +773,7 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
   if (show && debug)
     {
       char pbuf[64];
-      inet_ntop (safi, prefix, pbuf, sizeof (pbuf));
+      inet_ntop (af, prefix, pbuf, sizeof (pbuf));
       printf ("Sequence Number: %lu Prefix %s/%d Entry Count: %d\n",
               (unsigned long) sequence_number,
               pbuf, prefix_length, entry_count);
@@ -787,158 +781,12 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
 
   for (i = 0; i < entry_count && p < data_end; i++)
     {
-      bgpdump_process_table_v2_rib_entry (i, &p, info, data_end);
+      bgpdump_process_table_v2_rib_entry (i, &p, info, data_end, af);
     }
 
   if (udiff)
     {
       bgpdump_udiff_compare (sequence_number);
-
-#if 0
-      struct bgp_route *route;
-
-      if (udiff_verbose)
-        {
-          printf ("seq: %lu\n", (unsigned long) sequence_number);
-          if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]))
-            {
-              route = &diff_table[0][sequence_number];
-              printf ("{");
-              route_print (route);
-            }
-          if (! IS_ROUTE_NULL (&diff_table[1][sequence_number]))
-            {
-              route = &diff_table[1][sequence_number];
-              printf ("}");
-              route_print (route);
-            }
-        }
-
-      /* only in left */
-      if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
-          IS_ROUTE_NULL (&diff_table[1][sequence_number]))
-        {
-          route = &diff_table[0][sequence_number];
-          if (! udiff_lookup)
-            {
-              printf ("-");
-              route_print (route);
-            }
-          else
-            {
-              struct ptree_node *x;
-              int plen = (qaf == AF_INET ? 32 : 128);
-              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[1]);
-              if (x)
-                {
-                  /* only in left but also entirely reachable in right */
-                  struct bgp_route *other = x->data;
-                  if (other->flag == '>')
-                    {
-                      route->flag = '(';
-                      printf ("(");
-                    }
-                  else
-                    {
-                      route->flag = '-';
-                      printf ("-");
-                    }
-                  route_print (route);
-                }
-              else
-                {
-                  /* only in left and unreachable in right (maybe partially) */
-                  route->flag = '<';
-                  printf ("<");
-                  route_print (route);
-                }
-            }
-        }
-
-      /* only in right */
-      if (IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
-          ! IS_ROUTE_NULL (&diff_table[1][sequence_number]))
-        {
-          route = &diff_table[1][sequence_number];
-          if (! udiff_lookup)
-            {
-              printf ("+");
-              route_print (route);
-            }
-          else
-            {
-              struct ptree_node *x;
-              int plen = (qaf == AF_INET ? 32 : 128);
-              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[0]);
-              if (x)
-                {
-                  /* only in right but also entirely reachable in left */
-                  struct bgp_route *other = x->data;
-                  if (other->flag == '<')
-                    {
-                      route->flag = ')';
-                      printf (")");
-                    }
-                  else
-                    {
-                      route->flag = '+';
-                      printf ("+");
-                    }
-                  route_print (route);
-                }
-              else
-                {
-                  /* only in right and unreachable in left (maybe partially) */
-                  route->flag = '>';
-                  printf (">");
-                  route_print (route);
-                }
-            }
-        }
-
-      /* exist in both */
-      if (! IS_ROUTE_NULL (&diff_table[0][sequence_number]) &&
-          ! IS_ROUTE_NULL (&diff_table[1][sequence_number]) &&
-          diff_table[0][sequence_number].prefix_length > 0)
-        {
-          int plen = diff_table[0][sequence_number].prefix_length - 1;
-
-          if (udiff_lookup)
-            {
-              struct ptree_node *x;
-
-              route = &diff_table[0][sequence_number];
-              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[1]);
-              if (x)
-                {
-                  /* the shorter in right was '>' */
-                  struct bgp_route *other = x->data;
-                  if (other->flag == '>')
-                    {
-                      route->flag = '(';
-                      printf ("(");
-                      route_print (route);
-                    }
-                }
-
-              route = &diff_table[1][sequence_number];
-              x = ptree_search ((char *)&route->prefix, plen, diff_ptree[0]);
-              if (x)
-                {
-                  /* the shorter in left was '<' */
-                  struct bgp_route *other = x->data;
-                  if (other->flag == '<')
-                    {
-                      route->flag = ')';
-                      printf (")");
-                      route_print (route);
-                    }
-                }
-
-            }
-        }
-#endif /*0*/
-
     }
 }
 
@@ -952,17 +800,15 @@ bgpdump_process_table_dump_v2 (struct mrt_header *h, struct mrt_info *info,
       bgpdump_process_table_v2_peer_index_table (h, info, data_end);
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV4_UNICAST:
-      if (! peer_table_only && qaf == AF_INET )
+      if (! peer_table_only)
         {
-          safi = AF_INET;
-          bgpdump_process_table_v2_rib_unicast (h, info, data_end);
+          bgpdump_process_table_v2_rib_unicast (h, info, data_end, AF_INET);
         }
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV6_UNICAST:
-      if (! peer_table_only && qaf == AF_INET6 )
+      if (! peer_table_only)
         {
-          safi = AF_INET6;
-          bgpdump_process_table_v2_rib_unicast (h, info, data_end);
+          bgpdump_process_table_v2_rib_unicast (h, info, data_end, AF_INET6);
         }
       break;
     default:

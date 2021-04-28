@@ -53,7 +53,6 @@ char *progname = NULL;
 struct mrt_info info;
 struct ptree *ptree[AF_INET6 + 1];
 
-int safi = AF_INET;
 int qaf = AF_INET;
 
 unsigned long autnums[AUTLIM];
