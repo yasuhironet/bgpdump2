@@ -26,6 +26,7 @@
 
 struct bgp_route
 {
+  int af;
   char flag;
   char prefix[MAX_ADDR_LENGTH];
   uint8_t prefix_length;
@@ -59,6 +60,10 @@ struct bgp_route *route_table_create ();
 void route_print_brief (struct bgp_route *route);
 void route_print (struct bgp_route *route);
 void route_print_compat (struct bgp_route *route);
+
+void route_print_brief2 (int peer_index, struct bgp_route *route);
+void route_print2 (int peer_index, struct bgp_route *route);
+void route_print_compat2 (int peer_index, struct bgp_route *route);
 
 #endif /*_BGPDUMP_ROUTE_H_*/
 

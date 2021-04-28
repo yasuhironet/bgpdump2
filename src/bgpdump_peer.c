@@ -26,6 +26,7 @@
 #include <arpa/inet.h>
 
 #include "bgpdump_route.h"
+#include "bgpdump_query.h"
 #include "bgpdump_ptree.h"
 
 #include "bgpdump_peer.h"
