@@ -52,7 +52,8 @@ ptree_node_create (char *key, int keylen)
 
   /* fill in the key */
   memcpy (x->key, key, (keylen + 7) / 8);
-  x->key[keylen / 8] = key[keylen / 8] & mask[keylen % 8];
+  if (keylen % 8)
+    x->key[keylen / 8] = key[keylen / 8] & mask[keylen % 8];
 
   return x;
 }
@@ -84,7 +85,7 @@ ptree_node_print (struct ptree_node *x)
 /* check_bit() returns the "keylen"-th bit in the key.
    key[keylen] would return the bit just after the key,
    because the index of the key[] starts with 0-origin. */
-static int
+int
 check_bit (char *key, int keylen)
 {
   int offset;
@@ -98,7 +99,7 @@ check_bit (char *key, int keylen)
 
 /* ptree_match() returns 1 iff keyi and keyj are the same
    in keylen bits */
-static int
+int
 ptree_match (char *keyi, char *keyj, int keylen)
 {
   int bytes;
@@ -459,7 +460,7 @@ ptree_next_within (int from, int to, struct ptree_node *v)
 }
 
 struct ptree *
-ptree_create ()
+ptree_create (void)
 {
   struct ptree *t;
 

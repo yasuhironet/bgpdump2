@@ -49,6 +49,10 @@ struct ptree {
 
 void ptree_node_print (struct ptree_node *x);
 
+int check_bit (char *key, int keylen);
+int ptree_match (char *keyi, char *keyj, int keylen);
+struct ptree_node *ptree_lookup (char *key, int keylen, struct ptree *t);
+
 struct ptree_node *ptree_search (char *key, int keylen, struct ptree *t);
 struct ptree_node *ptree_search_exact (char *key, int keylen, struct ptree *t);
 
@@ -59,7 +63,7 @@ struct ptree_node *ptree_head (struct ptree *t);
 struct ptree_node *ptree_next (struct ptree_node *v);
 struct ptree_node *ptree_next_within (int from, int to, struct ptree_node *v);
 
-struct ptree *ptree_create ();
+struct ptree *ptree_create (void);
 void ptree_delete (struct ptree *t);
 
 int ptree_count (struct ptree *t);
