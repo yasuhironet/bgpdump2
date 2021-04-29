@@ -688,7 +688,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
           //route_print (&route);
           memcpy (rp, &route, sizeof (struct bgp_route));
 
-          if (af == AF_INET)
+          //if (af == AF_INET)
             ptree_add ((char *)&rp->prefix, rp->prefix_length,
                        (void *)rp, peer_ptree[peer_spec_i]);
         }
@@ -800,13 +800,13 @@ bgpdump_process_table_dump_v2 (struct mrt_header *h, struct mrt_info *info,
       bgpdump_process_table_v2_peer_index_table (h, info, data_end);
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV4_UNICAST:
-      if (! peer_table_only)
+      if (! peer_table_only || (! qaf || qaf == AF_INET))
         {
           bgpdump_process_table_v2_rib_unicast (h, info, data_end, AF_INET);
         }
       break;
     case BGPDUMP_TABLE_V2_RIB_IPV6_UNICAST:
-      if (! peer_table_only)
+      if (! peer_table_only || (! qaf || qaf == AF_INET6))
         {
           bgpdump_process_table_v2_rib_unicast (h, info, data_end, AF_INET6);
         }
