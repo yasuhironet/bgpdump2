@@ -53,7 +53,7 @@ char *progname = NULL;
 struct mrt_info info;
 struct ptree *ptree[AF_INET6 + 1];
 
-int qaf = AF_INET;
+int qaf = 0;
 
 unsigned long autnums[AUTLIM];
 int autsiz = 0;
@@ -597,6 +597,20 @@ main (int argc, char **argv)
   /* query_table construction. */
   if (lookup)
     {
+      if (! qaf && lookup_addr)
+        {
+          struct in6_addr tmp;
+          if (inet_pton (AF_INET6, lookup_addr, &tmp) == 1)
+            qaf = AF_INET6;
+          else
+            qaf = AF_INET;
+        }
+
+      if (! qaf)
+        qaf = AF_INET;
+
+      printf ("lookup: query af: %d\n", qaf);
+
       query_limit = 0;
 
       if (lookup_file)
@@ -625,6 +639,8 @@ main (int argc, char **argv)
 
       if (lookup)
         {
+          if (! peer_spec_size)
+            printf ("warning: no peer spec. lookup needs a specified peer.\n");
           for (i = 0; i < peer_spec_size; i++)
             {
               printf ("peer %d:\n", peer_spec_index[i]);
