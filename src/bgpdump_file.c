@@ -122,7 +122,7 @@ bfeof (void *file)
 void *
 gopen (const char *filename, const char *mode)
 {
-  gzFile *f;
+  gzFile f;
   f = gzopen (filename, mode);
   if (! f)
     {
@@ -135,7 +135,7 @@ gopen (const char *filename, const char *mode)
 size_t
 gread (void *ptr, size_t size, size_t nitems, void *file)
 {
-  gzFile *f = (gzFile *) file;
+  gzFile f = (gzFile) file;
   int ret = 0;
   ret = gzread (f, ptr, size * nitems);
   if (ret < 0)
@@ -155,7 +155,7 @@ gwrite (void *ptr, size_t size, size_t nitems, void *file)
 int
 gclose (void *file)
 {
-  gzFile *f = (gzFile *) file;
+  gzFile f = (gzFile) file;
   gzclose (f);
   return 0;
 }
