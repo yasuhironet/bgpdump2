@@ -117,8 +117,7 @@ int heatmap = 0;
 char *heatmap_prefix;
 
 extern char *progname;
-extern int safi;
-extern int qaf;
+extern int qafi;
 
 extern unsigned long autnums[];
 extern int autsiz;
@@ -247,10 +246,10 @@ bgpdump_getopt (int argc, char **argv)
           lookup_file = optarg;
           break;
         case '4':
-          qaf = AF_INET;
+          qafi = AF_INET;
           break;
         case '6':
-          qaf = AF_INET6;
+          qafi = AF_INET6;
           break;
 
         case 'H':

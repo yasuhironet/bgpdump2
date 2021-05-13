@@ -54,7 +54,7 @@ char *progname = NULL;
 struct mrt_info info;
 struct ptree *ptree[AF_INET6 + 1];
 
-int qaf = 0;
+int qafi = 0;
 
 unsigned long autnums[AUTLIM];
 int autsiz = 0;
@@ -276,19 +276,19 @@ main (int argc, char **argv)
   /* query_table construction. */
   if (lookup)
     {
-      if (! qaf && lookup_addr)
+      if (! qafi && lookup_addr)
         {
           struct in6_addr tmp;
           if (inet_pton (AF_INET6, lookup_addr, &tmp) == 1)
-            qaf = AF_INET6;
+            qafi = AF_INET6;
           else
-            qaf = AF_INET;
+            qafi = AF_INET;
         }
 
-      if (! qaf)
-        qaf = AF_INET;
+      if (! qafi)
+        qafi = AF_INET;
 
-      printf ("lookup: query af: %d\n", qaf);
+      printf ("lookup: query afi: %d\n", qafi);
 
       query_limit = 0;
 

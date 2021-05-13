@@ -71,7 +71,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
       else
         {
           struct ptree_node *x;
-          int plen = (qaf == AF_INET ? 32 : 128);
+          int plen = (qafi == AF_INET ? 32 : 128);
           x = ptree_search ((char *)&route->prefix, plen, pt1);
           if (x)
             {
@@ -112,7 +112,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
       else
         {
           struct ptree_node *x;
-          int plen = (qaf == AF_INET ? 32 : 128);
+          int plen = (qafi == AF_INET ? 32 : 128);
           x = ptree_search ((char *)&route->prefix, plen, pt0);
           if (x)
             {
