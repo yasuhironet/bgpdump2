@@ -47,7 +47,7 @@ void
 query_addr (char *lookup_addr)
 {
   printf ("looking up an address: %s\n", lookup_addr);
-  inet_pton (qaf, lookup_addr,
+  inet_pton (qafi, lookup_addr,
              query_table[query_size++].destination);
 }
 
@@ -98,7 +98,7 @@ query_file (char *lookup_file)
       p = index (buf, '\n');
       if (p)
         *p = '\0';
-      inet_pton (qaf, buf, query_table[query_size++].destination);
+      inet_pton (qafi, buf, query_table[query_size++].destination);
     }
   fclose (fp);
 }
@@ -109,7 +109,7 @@ query_random (int ntimes)
   unsigned long *p;
   while (query_size < query_limit)
     {
-      if (qaf == AF_INET)
+      if (qafi == AF_INET)
         {
           p = (unsigned long *)&query_table[query_size].destination[0];
           *p = random ();
@@ -141,9 +141,9 @@ query_list ()
       if (HAS_QUERY_NEXTHOP (&query_table[i]))
         {
           char buf[64], buf2[64];
-          inet_ntop (qaf, query_table[i].destination,
+          inet_ntop (qafi, query_table[i].destination,
                      buf, sizeof (buf));
-          inet_ntop (qaf, query_table[i].nexthop,
+          inet_ntop (qafi, query_table[i].nexthop,
                      buf2, sizeof (buf2));
           printf ("destination: %s nexthop: %s\n", buf, buf2);
         }

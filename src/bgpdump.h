@@ -31,8 +31,7 @@ extern struct ptree *ptree[];
 #define ROUTE_ORIG_SIZE (1000 * 1000 * 1000)
 extern int route_orig_size;
 
-extern int safi;
-extern int qaf;
+extern int qafi;
 #define MAX_ADDR_LENGTH 16
 
 #endif /*_BGPDUMP_H_*/

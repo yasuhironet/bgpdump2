@@ -48,8 +48,8 @@ ptree_list (struct ptree *ptree)
       if (x->data)
         {
           br = x->data;
-          inet_ntop (qaf, br->prefix, buf, sizeof (buf));
-          inet_ntop (qaf, br->nexthop, buf2, sizeof (buf2));
+          inet_ntop (qafi, br->prefix, buf, sizeof (buf));
+          inet_ntop (qafi, br->nexthop, buf2, sizeof (buf2));
           printf ("%s/%d: %s\n", buf, br->prefix_length, buf2);
           count++;
         }
@@ -70,7 +70,7 @@ ptree_query (struct ptree *ptree,
     {
       char *query = query_table[i].destination;
       char *answer = query_table[i].nexthop;
-      int plen = (qaf == AF_INET ? 32 : 128);
+      int plen = (qafi == AF_INET ? 32 : 128);
       x = ptree_search (query, plen, ptree);
       if (x)
         {
@@ -82,7 +82,7 @@ ptree_query (struct ptree *ptree,
       else if (! benchmark)
         {
           char buf[64];
-          inet_ntop (qaf, query, buf, sizeof (buf));
+          inet_ntop (qafi, query, buf, sizeof (buf));
           printf ("%s: no route found.\n", buf);
         }
     }
