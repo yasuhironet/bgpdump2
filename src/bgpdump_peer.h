@@ -29,7 +29,7 @@ struct peer
   uint64_t route_count_by_plen[33];
 };
 
-#define PEER_MAX 128
+#define PEER_MAX 256
 
 #define PEER_INDEX_MAX 8
 
