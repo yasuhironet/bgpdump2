@@ -42,10 +42,17 @@
 extern struct bgp_route *diff_table[];
 extern struct ptree *diff_ptree[];
 
+void
+bgpdump_debug_break ()
+{
+}
+
 #define BUFFER_OVERRUN_CHECK(P,SIZE,END) \
   if ((P) + (SIZE) > (END))              \
     {                                    \
-      printf ("buffer overrun.\n");      \
+      printf ("%s: %s(): line: %d: buffer overrun.\n", \
+              __FILE__, __func__, __LINE__);           \
+      bgpdump_debug_break (); \
       return;                            \
     }
 
@@ -89,7 +96,8 @@ bgpdump_process_mrt_header (struct mrt_header *h, struct mrt_info *info)
   info->subtype = ntohs (h->subtype);
   info->length = ntohl (h->length);
 
-  if (show && (debug || detail))
+  //if (show && (debug || detail))
+  if (debug >= 2)
     printf ("MRT Header: ts: %lu type: %hu sub: %hu len: %lu\n",
             (unsigned long) timestamp,
             (unsigned short) mrt_type,
@@ -275,7 +283,7 @@ bgpdump_process_table_v2_peer_index_table (struct mrt_header *h,
   peer_count = ntohs (*(uint16_t *)p);
   p += size;
 
-  if (peer_table_only || (show && (debug || detail)))
+  if (peer_table_only || route_count_peers || (show && (debug || detail)))
     {
       inet_ntop (AF_INET, &collector_bgp_id, buf, sizeof (buf));
       printf ("Collector BGP ID: %s\n", buf);
@@ -591,6 +599,14 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
 
   int peer_match, i;
 
+  if (debug >= 3)
+    {
+      printf ("%s: entry[%d]: %s: start: %p end: %p (len: %d)\n",
+              __func__, index,
+              (af == AF_INET ? "ipv4" : (af == AF_INET6 ? "ipv6" : "???")),
+              *q, data_end, (int) (data_end - *q));
+    }
+
   size = sizeof (peer_index);
   BUFFER_OVERRUN_CHECK(p, size, data_end)
   peer_index = ntohs (*(uint16_t *)p);
@@ -606,6 +622,27 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
   attribute_length = ntohs (*(uint16_t *)p);
   p += size;
 
+  if (debug >= 3)
+    {
+      printf ("%s: entry[%d]: "
+              "peer_index: %hu originated_time: %u attribute_length: %hu\n",
+              __func__, index,
+              peer_index, originated_time, attribute_length);
+    }
+
+  if (p + attribute_length > data_end)
+    {
+      printf ("%s: found a malformed rib_entry. "
+              "ignoring the erroneous mrt message.\n", __func__);
+      printf ("%s: entry[%d]: "
+              "peer_index: %hu originated_time: %u attribute_length: %hu\n",
+              __func__, index,
+              peer_index, originated_time, attribute_length);
+      p = data_end;
+      *q = p;
+      return;
+    }
+
   int peer_spec_i = 0;
   peer_match = 0;
   for (i = 0; i < MIN(peer_spec_size, PEER_INDEX_MAX); i++)
@@ -617,8 +654,10 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
         }
     }
 
+#if 0
   if (peer_spec_size && debug)
     printf ("peer_index: %d, peer_match: %d\n", peer_index, peer_match);
+#endif
 
   if (! peer_spec_size || peer_match)
     {
@@ -629,8 +668,14 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
 
       if (peer_index < PEER_MAX)
         {
-          if (route_count)
-            peer_table[peer_index].route_count++;
+          if (route_count || route_count_peers)
+            {
+              peer_table[peer_index].route_count++;
+              if (af == AF_INET)
+                peer_table[peer_index].route_count_ipv4++;
+              if (af == AF_INET6)
+                peer_table[peer_index].route_count_ipv6++;
+            }
 
           if (plen_dist)
             peer_table[peer_index].route_count_by_plen[prefix_length]++;
@@ -730,6 +775,10 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
     }
 
   BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)
+#if 0
+  printf ("proceed: peerindex: %d: p: %p + attrlen: %d next: %p data_end: %p\n", 
+          peer_index, p, attribute_length, p + attribute_length, data_end);
+#endif
   p += attribute_length;
 
   *q = p;

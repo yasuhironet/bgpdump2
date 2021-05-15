@@ -35,7 +35,7 @@ extern int optopt;
 extern int opterr;
 extern int optreset;
 
-const char *optstring = "hVvdmbPp:a:uUrcjkN:M:gl:L:46H:";
+const char *optstring = "hVvdmbPp:a:uUrcCjkN:M:gl:L:46H:";
 const struct option longopts[] =
 {
   { "help",         no_argument,       NULL, 'h' },
@@ -51,6 +51,7 @@ const struct option longopts[] =
   { "diff-verbose", no_argument,       NULL, 'U' },
   { "diff-table",   no_argument,       NULL, 'r' },
   { "count",        no_argument,       NULL, 'c' },
+  { "count-peers",  no_argument,       NULL, 'C' },
   { "plen-dist",    no_argument,       NULL, 'j' },
   { "peer-stat",    no_argument,       NULL, 'k' },
   { "bufsiz",       required_argument, NULL, 'N' },
@@ -78,6 +79,7 @@ const char opthelp[] = "\
 -U, --diff-verbose        Shows the detailed info of unified diff.\n\
 -r, --diff-table          Specify to create diff route_table.\n\
 -c, --count               Count the route number.\n\
+-C, --count-peers         Count the route number per peer.\n\
 -j, --plen-dist           Count the route number by prefixlen.\n\
 -k, --peer-stat           Shows prefix-length distribution.\n\
 -N, --bufsiz              Specify the size of read buffer.\n\
@@ -105,6 +107,7 @@ int udiff = 0;
 int udiff_verbose = 0;
 int udiff_lookup = 0;
 int route_count = 0;
+int route_count_peers = 0;
 int plen_dist = 0;
 int stat = 0;
 unsigned long long bufsiz = 0;
@@ -212,6 +215,9 @@ bgpdump_getopt (int argc, char **argv)
           break;
         case 'c':
           route_count++;
+          break;
+        case 'C':
+          route_count_peers++;
           break;
         case 'j':
           plen_dist++;

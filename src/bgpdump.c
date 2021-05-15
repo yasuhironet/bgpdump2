@@ -29,6 +29,7 @@
 #include <getopt.h>
 #include <assert.h>
 #include <errno.h>
+#include <locale.h>
 
 #include "benchmark.h"
 #include "queue.h"
@@ -63,7 +64,7 @@ int autsiz = 0;
 struct bgp_route *diff_table[2];
 struct ptree *diff_ptree[2];
 
-void
+int
 bgpdump_process (char *buf, size_t *data_len)
 {
   char *p;
@@ -74,14 +75,14 @@ bgpdump_process (char *buf, size_t *data_len)
   int rest;
 
   if (debug)
-    printf ("process %lu bytes.\n", *data_len);
+    printf ("%s(): process %'lu bytes.\n", __func__, *data_len);
 
   p = buf;
   h = (struct mrt_header *) p;
   len = ntohl (h->length);
 
   if (debug)
-    printf ("mrt message: length: %lu bytes.\n", len);
+    printf ("%s(): mrt message: length: %'lu bytes.\n", __func__, len);
 
   /* Process as long as entire MRT message is in the buffer */
   while (len && p + hsize + len <= data_end)
@@ -95,7 +96,7 @@ bgpdump_process (char *buf, size_t *data_len)
           break;
         default:
           printf ("Not supported: mrt type: %d\n", mrt_type);
-          printf ("discarding %lu bytes data.\n", hsize + len);
+          printf ("discarding %'lu bytes data.\n", hsize + len);
           break;
         }
 
@@ -106,7 +107,7 @@ bgpdump_process (char *buf, size_t *data_len)
         {
           h = (struct mrt_header *) p;
           len = ntohl (h->length);
-          if (debug)
+          if (debug >= 3)
             {
               printf ("next mrt message: length: %lu bytes.\n", len);
               printf ("p: %p hsize: %d len: %lu mrt-end: %p data_end: %p\n",
@@ -121,6 +122,12 @@ bgpdump_process (char *buf, size_t *data_len)
   if (rest)
     memmove (buf, p, rest);
   *data_len = rest;
+
+  if (debug)
+    printf ("%s(): processed: %'lu bytes, %'lu bytes remains.\n",
+            __func__, (unsigned long) (p - buf), (unsigned long) rest);
+
+  return (p - buf);
 }
 
 int
@@ -129,6 +136,8 @@ main (int argc, char **argv)
   int status = 0;
   int i;
   char *filename = NULL;
+
+  setlocale (LC_ALL, "");
 
   progname = argv[0];
 
@@ -152,12 +161,13 @@ main (int argc, char **argv)
 
   if (verbose)
     {
-      printf ("bufsiz = %llu\n", bufsiz);
-      printf ("nroutes = %llu\n", nroutes);
+      printf ("bufsiz = %'llu\n", bufsiz);
+      printf ("nroutes = %'llu\n", nroutes);
     }
 
   /* default cmd */
-  if (! brief && ! show && ! route_count && ! plen_dist && ! udiff &&
+  if (! brief && ! show && ! route_count && ! route_count_peers &&
+      ! plen_dist && ! udiff &&
       ! lookup && ! peer_table_only && ! stat && ! compat_mode &&
       ! autsiz && ! heatmap)
     show++;
@@ -235,7 +245,7 @@ main (int argc, char **argv)
         {
           ret = method->fread (buf + datalen, bufsiz - datalen, 1, file);
           if (debug)
-            printf ("read: %lu bytes to buf[%lu]. total %lu bytes\n",
+            printf ("read: %'lu bytes to buf[%lu]. total %'lu bytes\n",
                     ret, datalen, ret + datalen);
           datalen += ret;
 
@@ -247,15 +257,20 @@ main (int argc, char **argv)
               break;
             }
 
-          bgpdump_process (buf, &datalen);
+          ret = bgpdump_process (buf, &datalen);
+          if (ret <= 0)
+            {
+              printf ("bgpdump_process(): failed: ret: %ld.\n", ret);
+              break;
+            }
 
           if (debug)
-            printf ("process rest: %lu bytes\n", datalen);
+            printf ("process rest: %'lu bytes\n", datalen);
         }
 
       if (datalen)
         {
-          printf ("warning: %lu bytes unprocessed data remains: %s\n",
+          printf ("warning: %'lu bytes unprocessed data remains: %s\n",
                   datalen, filename);
         }
       method->fclose (file);
@@ -265,6 +280,10 @@ main (int argc, char **argv)
         {
           peer_route_count_show ();
           peer_route_count_clear ();
+        }
+      if (route_count_peers)
+        {
+          peer_route_count_list ();
         }
 
       if (plen_dist)

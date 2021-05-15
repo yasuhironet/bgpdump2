@@ -26,6 +26,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "bgpdump_option.h"
+
 #include "bgpdump_route.h"
 #include "bgpdump_query.h"
 #include "bgpdump_ptree.h"
@@ -83,7 +85,34 @@ peer_route_count_clear ()
 {
   int i;
   for (i = 0; i < peer_size; i++)
-    peer_table[i].route_count = 0;
+    {
+      peer_table[i].route_count = 0;
+      peer_table[i].route_count_ipv4 = 0;
+      peer_table[i].route_count_ipv6 = 0;
+    }
+}
+
+void
+peer_route_count_list ()
+{
+  int i;
+  char buf[64], buf2[64], buf3[64];
+  for (i = 0; i < peer_size; i++)
+    {
+      struct peer *peer;
+      peer = &peer_table[i];
+      inet_ntop (AF_INET, &peer->bgp_id, buf, sizeof (buf));
+      inet_ntop (AF_INET, &peer->ipv4_addr, buf2, sizeof (buf2));
+      inet_ntop (AF_INET6, &peer->ipv6_addr, buf3, sizeof (buf3));
+      printf ("peer[%d]: %s asn: %d #routes: %'llu (v4: %'llu v6: %'llu)",
+              i, buf, peer->asnumber,
+              (unsigned long long) peer->route_count,
+              (unsigned long long) peer->route_count_ipv4,
+              (unsigned long long) peer->route_count_ipv6);
+      if (verbose)
+        printf (" [%s|%s]", buf2, buf3);
+      printf ("\n");
+    }
 }
 
 void
