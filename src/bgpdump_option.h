@@ -29,6 +29,7 @@ extern int udiff;
 extern int udiff_verbose;
 extern int udiff_lookup;
 extern int route_count;
+extern int route_count_peers;
 extern int plen_dist;
 extern int stat;
 extern int benchmark;

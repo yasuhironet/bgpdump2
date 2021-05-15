@@ -27,6 +27,8 @@ struct peer
   uint32_t asnumber;
   uint64_t route_count;
   uint64_t route_count_by_plen[33];
+  uint64_t route_count_ipv4;
+  uint64_t route_count_ipv6;
 };
 
 #define PEER_MAX 256
@@ -48,6 +50,7 @@ void peer_table_init ();
 void peer_print (struct peer *peer);
 void peer_route_count_show ();
 void peer_route_count_clear ();
+void peer_route_count_list ();
 void peer_route_count_by_plen_show ();
 void peer_route_count_by_plen_clear ();
 
