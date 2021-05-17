@@ -35,5 +35,7 @@ data
 heatmap/testprint/obj
 heatmap/testprint/testprint.mp4
 heatmap/ipv4-evolution/*/*/rib.*.*.bz2
-
+heatmap/ipv4-evolution/ipv4-evolution.mp4
+heatmap/ipv4-evolution/obj
+heatmap/ipv4-evolution/obj2
 
