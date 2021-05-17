@@ -15,8 +15,13 @@ for y in $years; do
     for m in $months; do
         if [ -f ../$y/$m/filelist.txt ]; then
             for f in `cat ../$y/$m/filelist.txt`; do
-                [ ! -f $f-p10.gp ] && $bgpdump2 -H $f ../$y/$m/$f -p 10
-                [ ! -f $f-p10.png ] && gnuplot $f-p10.gp
+                [ ! -f $f-p*.gp ] && $bgpdump2 -H $f ../$y/$m/$f -a 2914
+                if [ ! -f $f-p*.png ]; then
+                    for g in `ls $f-p*.gp`; do
+                        gnuplot $g
+                        break;
+                    done
+                fi
             done
         fi
     done
