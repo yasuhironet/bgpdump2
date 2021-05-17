@@ -22,9 +22,9 @@
 void rot (u_int64_t n, u_int32_t *x, u_int32_t *y, u_int32_t rx, u_int32_t ry);
 void d2xy (u_int64_t n, u_int64_t d, u_int32_t *x, u_int32_t *y);
 
-void heatmap_image_hilbert_gplot (int peer_spec_i);
-void heatmap_image_hilbert_data (int peer_spec_i);
-void heatmap_image_hilbert_data_aspath_max_distance (int peer_spec_i);
+void heatmap_image_hilbert_gplot (int peer_index);
+void heatmap_image_hilbert_data (int peer_index, struct ptree *ptree);
+void heatmap_image_hilbert_data_aspath_max_distance (int peer_index, struct ptree *ptree);
 
 #endif /*_BGPDUMP_HEATMAP_H_*/
 

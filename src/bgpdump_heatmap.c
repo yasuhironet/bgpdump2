@@ -69,9 +69,9 @@ d2xy (u_int64_t n, u_int64_t d, u_int32_t *x, u_int32_t *y)
 }
 
 void
-heatmap_image_hilbert_gplot (int peer_spec_i)
+heatmap_image_hilbert_gplot (int peer_index)
 {
-  int peer_index = peer_spec_index[peer_spec_i];
+  //int peer_index = peer_spec_index[peer_spec_i];
 
   unsigned int a0;
   unsigned long val = 0;
@@ -161,27 +161,28 @@ heatmap_image_hilbert_gplot (int peer_spec_i)
   fprintf (fp, "\n");
   fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d\"\n",
            titlename, peer_index, bgpid, bgpaddr, asnum);
-  fprintf (fp, "set term postscript eps enhanced color\n");
-  fprintf (fp, "set output '%s-p%d.eps'\n", heatmap_prefix, peer_index);
+  fprintf (fp, "set term png\n");
+  fprintf (fp, "set output '%s-p%d.png'\n", heatmap_prefix, peer_index);
   fprintf (fp, "splot '%s-p%d.dat' u 1:2:3 with image notitle\n",
            heatmap_prefix, peer_index);
   fprintf (fp, "\n");
-  fprintf (fp, "set term png\n");
-  fprintf (fp, "set output '%s-p%d.png'\n", heatmap_prefix, peer_index);
+#if 0
+  fprintf (fp, "set term postscript eps enhanced color\n");
+  fprintf (fp, "set output '%s-p%d.eps'\n", heatmap_prefix, peer_index);
   fprintf (fp, "replot\n");
   fprintf (fp, "\n");
+#endif
 
   fclose (fp);
 
   printf ("%s is written.\n", filename);
 }
 
-
 void
-heatmap_image_hilbert_data (int peer_spec_i)
+heatmap_image_hilbert_data (int peer_index, struct ptree *ptree)
 {
-  int peer_index = peer_spec_index[peer_spec_i];
-  struct ptree *ptree = peer_ptree[peer_spec_i];
+  //int peer_index = peer_spec_index[peer_spec_i];
+  //struct ptree *ptree = peer_ptree[peer_spec_i];
 
   unsigned int a0, a1, a2;
   struct in_addr addr = { 0 };
@@ -258,10 +259,10 @@ heatmap_image_hilbert_data (int peer_spec_i)
 }
 
 void
-heatmap_image_hilbert_data_aspath_max_distance (int peer_spec_i)
+heatmap_image_hilbert_data_aspath_max_distance (int peer_index, struct ptree *ptree)
 {
-  int peer_index = peer_spec_index[peer_spec_i];
-  struct ptree *ptree = peer_ptree[peer_spec_i];
+  //int peer_index = peer_spec_index[peer_spec_i];
+  //struct ptree *ptree = peer_ptree[peer_spec_i];
 
   unsigned int a0, a1, a2;
   struct in_addr addr = { 0 };

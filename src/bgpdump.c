@@ -152,12 +152,14 @@ main (int argc, char **argv)
   if (status)
     return status;
 
+#if 0
   if (argc == 0)
     {
       printf ("specify rib files.\n");
       usage ();
       exit (-1);
     }
+#endif
 
   if (verbose)
     {
@@ -358,11 +360,30 @@ main (int argc, char **argv)
 
   if (heatmap)
     {
-      for (i = 0; i < peer_spec_size; i++)
+      if (! strcmp (heatmap_prefix, "testprint"))
         {
-          heatmap_image_hilbert_gplot (i);
-          heatmap_image_hilbert_data (i);
-          //heatmap_image_hilbert_data_aspath_max_distance (i);
+          struct ptree *ptree;
+          unsigned char addr[4] = {0};
+          for (i = 0; i < 256; i++)
+            {
+              addr[0] = (unsigned char) i;
+              ptree = ptree_create ();
+              ptree_add (addr, 8, (void *)1, ptree);
+              heatmap_image_hilbert_gplot (i);
+              heatmap_image_hilbert_data (i, ptree);
+              ptree_delete (ptree);
+            }
+        }
+      else
+        {
+          for (i = 0; i < peer_spec_size; i++)
+            {
+              int peer_index = peer_spec_index[i];
+              struct ptree *ptree = peer_ptree[i];
+              heatmap_image_hilbert_gplot (peer_index);
+              heatmap_image_hilbert_data (peer_index, ptree);
+              //heatmap_image_hilbert_data_aspath_max_distance (peer_index);
+            }
         }
     }
 

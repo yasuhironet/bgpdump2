@@ -32,3 +32,7 @@ config.sub
 
 data
 
+heatmap/testprint/obj
+heatmap/testprint/testprint.mp4
+
+
