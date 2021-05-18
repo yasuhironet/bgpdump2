@@ -368,7 +368,7 @@ main (int argc, char **argv)
             {
               addr[0] = (unsigned char) i;
               ptree = ptree_create ();
-              ptree_add (addr, 8, (void *)1, ptree);
+              ptree_add ((char *)addr, 8, (void *)1, ptree);
               heatmap_image_hilbert_gplot (i);
               heatmap_image_hilbert_data (i, ptree);
               ptree_delete (ptree);

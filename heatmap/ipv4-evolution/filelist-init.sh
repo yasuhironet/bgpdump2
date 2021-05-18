@@ -8,7 +8,7 @@ for y in $years; do
         mkdir -p $y/$m
         echo > $y/$m/filelist-init.txt
         for d in $days; do
-            echo "rib.$y$m$d.0000.bz2" >> $y/$m/filelist-init.txt
+            echo "rib.$y$m$d.0200.bz2" >> $y/$m/filelist-init.txt
         done
     done
 done

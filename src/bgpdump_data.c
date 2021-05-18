@@ -668,7 +668,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
 
       if (peer_index < PEER_MAX)
         {
-          if (route_count || route_count_peers)
+          //if (route_count || route_count_peers)
             {
               peer_table[peer_index].route_count++;
               if (af == AF_INET)

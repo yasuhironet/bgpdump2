@@ -150,6 +150,8 @@ heatmap_image_hilbert_gplot (int peer_index)
              bgpid, sizeof (bgpid));
   inet_ntop (AF_INET, &peer_table[peer_index].ipv4_addr,
              bgpaddr, sizeof (bgpaddr));
+  unsigned long route_count4 = 0;
+  route_count4 = peer_table[peer_index].route_count_ipv4;
 
   char *p, titlename[64];
   p = rindex (heatmap_prefix, '/');
@@ -159,8 +161,8 @@ heatmap_image_hilbert_gplot (int peer_index)
     snprintf (titlename, sizeof (titlename), "%s", heatmap_prefix);
 
   fprintf (fp, "\n");
-  fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d\"\n",
-           titlename, peer_index, bgpid, bgpaddr, asnum);
+  fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d #route:%lu\"\n",
+           titlename, peer_index, bgpid, bgpaddr, asnum, route_count4);
   fprintf (fp, "set term png\n");
   fprintf (fp, "set output '%s-p%d.png'\n", heatmap_prefix, peer_index);
   fprintf (fp, "splot '%s-p%d.dat' u 1:2:3 with image notitle\n",
