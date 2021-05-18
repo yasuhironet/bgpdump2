@@ -161,8 +161,16 @@ heatmap_image_hilbert_gplot (int peer_index)
     snprintf (titlename, sizeof (titlename), "%s", heatmap_prefix);
 
   fprintf (fp, "\n");
-  fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d #route:%lu\"\n",
-           titlename, peer_index, bgpid, bgpaddr, asnum, route_count4);
+  fprintf (fp, "set label  %u \"#routes:\" at first 50,275 right "
+           "font \",12\" front textcolor rgb \"black\"\n",
+           500);
+  fprintf (fp, "set label  %u \"%'lu\" at first 100,275 right "
+           "font \",12\" front textcolor rgb \"black\"\n",
+           501, route_count4);
+
+  fprintf (fp, "\n");
+  fprintf (fp, "set title \"%s p%d bgpid:%s addr:%s AS%d\"\n",
+           titlename, peer_index, bgpid, bgpaddr, asnum);
   fprintf (fp, "set term png\n");
   fprintf (fp, "set output '%s-p%d.png'\n", heatmap_prefix, peer_index);
   fprintf (fp, "splot '%s-p%d.dat' u 1:2:3 with image notitle\n",
