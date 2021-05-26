@@ -1,9 +1,9 @@
 
 urlprefix="http://archive.routeviews.org/bgpdata/"
 
-years=`seq 2009 2020`
+years=`seq 2009 2021`
 months=`seq -w 1 12`
-days=`seq -w 1 31`
+#days=`seq -w 1 31`
 
 for y in $years; do
     for m in $months; do

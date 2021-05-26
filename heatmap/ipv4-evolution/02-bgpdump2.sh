@@ -7,7 +7,7 @@ dir2=obj2
 mkdir -p $dir $dir2
 cd $dir
 
-years=`seq 2009 2020`
+years=`seq 2009 2021`
 months=`seq -w 1 12`
 # days=`seq -w 1 31`
 
