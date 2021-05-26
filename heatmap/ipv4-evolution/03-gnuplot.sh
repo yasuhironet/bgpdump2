@@ -7,7 +7,7 @@ dir2=obj2
 mkdir -p $dir $dir2
 cd $dir
 
-years=`seq 2009 2020`
+years=`seq 2009 2021`
 months=`seq -w 1 12`
 # days=`seq -w 1 31`
 
@@ -19,6 +19,8 @@ for y in $years; do
                 xpng=`ls $f-p*.png 2> /dev/null`
                 if [ -n "$xgp" -a -z "$xpng" ]; then
                     for g in `ls $f-p*.gp`; do
+                        bgpid=`grep 'bgpid:0.0.0.0 ' $g`
+                        [ -n "$bgpid" -o ! $? ] && continue;
                         gnuplot $g
                         break;
                     done
