@@ -64,6 +64,8 @@ int autsiz = 0;
 struct bgp_route *diff_table[2];
 struct ptree *diff_ptree[2];
 
+uint64_t processed_bytes = 0;
+
 int
 bgpdump_process (char *buf, size_t *data_len)
 {
@@ -101,6 +103,7 @@ bgpdump_process (char *buf, size_t *data_len)
         }
 
       p += hsize + len;
+      processed_bytes += hsize + len;
 
       len = 0;
       if (p + hsize < data_end)
@@ -181,10 +184,13 @@ main (int argc, char **argv)
   buf = malloc (bufsiz);
   if (! buf)
     {
-      printf ("can't malloc %lluB-size buf: %s\n",
+      printf ("can't malloc %'lluB-size buf: %s\n",
               bufsiz, strerror (errno));
       exit (-1);
     }
+
+  if (debug)
+    printf ("buf: %p (%'lluB-size)\n", buf, bufsiz);
 
   peer_table_init ();
 
@@ -242,6 +248,7 @@ main (int argc, char **argv)
         }
 
       size_t datalen = 0;
+      processed_bytes = 0;
 
       while (1)
         {
@@ -263,6 +270,7 @@ main (int argc, char **argv)
           if (ret <= 0)
             {
               printf ("bgpdump_process(): failed: ret: %ld.\n", ret);
+              printf ("processed bytes: %'lu.\n", processed_bytes);
               break;
             }
 
@@ -272,8 +280,9 @@ main (int argc, char **argv)
 
       if (datalen)
         {
-          printf ("warning: %'lu bytes unprocessed data remains: %s\n",
-                  datalen, filename);
+          fprintf (stderr, "warning: %'lu bytes unprocessed data "
+                   "remains: %s\n",
+                   datalen, filename);
         }
       method->fclose (file);
 
@@ -411,6 +420,15 @@ main (int argc, char **argv)
     {
       peer_stat_show ();
       //peer_stat_finish ();
+    }
+
+  if (peer_spec_size)
+    {
+      for (i = 0; i < peer_spec_size; i++)
+        {
+          free (peer_route_table[i]);
+          ptree_delete (peer_ptree[i]);
+        }
     }
 
   free (buf);

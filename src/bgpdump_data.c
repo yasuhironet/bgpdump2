@@ -42,6 +42,8 @@
 extern struct bgp_route *diff_table[];
 extern struct ptree *diff_ptree[];
 
+extern uint64_t processed_bytes;
+
 void
 bgpdump_debug_break ()
 {
@@ -60,6 +62,7 @@ uint32_t timestamp;
 uint16_t mrt_type;
 uint16_t mrt_subtype;
 uint32_t mrt_length;
+char timebuf[64];
 
 uint32_t sequence_number;
 uint16_t peer_index;
@@ -73,10 +76,9 @@ bgpdump_process_mrt_header (struct mrt_header *h, struct mrt_info *info)
 
   newtime = ntohl (h->timestamp);
 
-  if (verbose && timestamp != newtime)
+  if ((verbose || debug) && timestamp != newtime)
     {
       struct tm *tm;
-      char timebuf[64];
       time_t clock;
 
       clock = (time_t) newtime;
@@ -97,8 +99,9 @@ bgpdump_process_mrt_header (struct mrt_header *h, struct mrt_info *info)
   info->length = ntohl (h->length);
 
   //if (show && (debug || detail))
-  if (debug >= 2)
-    printf ("MRT Header: ts: %lu type: %hu sub: %hu len: %lu\n",
+  if (debug)
+    printf ("MRT Header: offset: @%'luB ts: %lu type: %hu sub: %hu len: %lu\n",
+            processed_bytes,
             (unsigned long) timestamp,
             (unsigned short) mrt_type,
             (unsigned short) mrt_subtype,
@@ -622,24 +625,31 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
   attribute_length = ntohs (*(uint16_t *)p);
   p += size;
 
-  if (debug >= 3)
+  if (debug)
     {
-      printf ("%s: entry[%d]: "
-              "peer_index: %hu originated_time: %u attribute_length: %hu\n",
-              __func__, index,
-              peer_index, originated_time, attribute_length);
+      printf ("rib_entry[%d]: peer_index: %hu originated_time: %u "
+              "attribute_length: %hu\n",
+              index, peer_index, originated_time, attribute_length);
     }
 
-  if (p + attribute_length > data_end)
+  if ((p + attribute_length > data_end) ||
+      peer_index >= peer_size ||
+      ! originated_time ||
+      ! attribute_length)
     {
-      printf ("%s: found a malformed rib_entry. "
-              "ignoring the erroneous mrt message.\n", __func__);
-      printf ("%s: entry[%d]: "
-              "peer_index: %hu originated_time: %u attribute_length: %hu\n",
-              __func__, index,
-              peer_index, originated_time, attribute_length);
+      printf ("malformed rib_entry: ignoring the erroneous mrt message.\n");
+      if (p + attribute_length > data_end)
+        printf ("malformed: attrend: %p (%p + attrlen %d) > dataend: %p\n",
+                p + attribute_length, p, attribute_length, data_end);
+      if (peer_index >= peer_size)
+        printf ("malformed: peer_index: %d >= peer_size: %d\n",
+                peer_index, peer_size);
+      printf ("rib_entry[%d]: %'luB: skipping %ld bytes, to %p\n",
+              index, processed_bytes, data_end - p, data_end);
       p = data_end;
       *q = p;
+      fflush (stdout);
+      //abort ();
       return;
     }
 
@@ -720,16 +730,19 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
           int *route_size = &peer_route_size[peer_spec_i];
           if (*route_size >= nroutes)
             {
-              printf ("route table overflow.\n");
-              *route_size = nroutes - 1;
+              printf ("route table overflow: route_size: %'d.\n",
+                      *route_size);
+              //*route_size = nroutes - 1;
+              printf ("try to increase the route_table size: "
+                      "e.g., -M 2000000\n");
+              exit (-1);
             }
 
           struct bgp_route *rpp;
           rpp = peer_route_table[peer_spec_i];
-          rp = &rpp[sequence_number];
-          //rp = &peer_route_table[peer_index][sequence_number];
-          *route_size = *route_size + 1;
-          //(*route_size)++;
+          //rp = &rpp[sequence_number];
+          rp = &rpp[(*route_size)];
+          (*route_size)++;
 
           //route_print (&route);
           memcpy (rp, &route, sizeof (struct bgp_route));
