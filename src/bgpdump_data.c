@@ -429,7 +429,11 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
                 printf ("  as_path[%s:%d]:",
                         (type == 1 ? "set" : "seq"), path_size);
 
-              route->path_size = path_size;
+              if ( type == 1 )
+                route->set_size = path_size;
+              else
+                route->path_size = path_size;
+
               for (i = 0; i < path_size; i++)
                 {
                   uint32_t as_path = ntohl (*(uint32_t *) r);
@@ -438,18 +442,25 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
                     printf (" %lu", (unsigned long) as_path);
 
                   if (i < ROUTE_PATH_LIMIT)
-                    route->path_list[i] = as_path;
+                  {
+                    if ( type == 1 )
+                    {
+                      route->set_list[i] = as_path;
+                    } else {
+                      route->path_list[i] = as_path;
+                    }
+                  }
 #if 1
                   else
                     {
                       if (show && detail)
                         printf ("\n");
-                      printf ("path_list buffer overflow.\n");
+                      printf ("%s_list buffer overflow.\n", type == 1 ? "set" : "path");
                       route_print (route);
                     }
 #endif
 
-                  if (i == path_size - 1)
+                  if (type != 1 && i == path_size - 1)
                     {
                       route->origin_as = as_path;
                     }
