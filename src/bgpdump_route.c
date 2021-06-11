@@ -88,6 +88,14 @@ route_print (struct bgp_route *route)
   printf ("as-path[%d]:", route->path_size);
   for (i = 0; i < MIN (route->path_size, ROUTE_PATH_LIMIT); i++)
     printf (" %lu", (unsigned long) route->path_list[i]);
+  if (route->set_size > 0 )
+  {
+     printf (" {");
+     for (i = 0; i < MIN (route->set_size, ROUTE_SET_LIMIT); i++)
+       printf ("%s%lu", i == 0 ? "" : " ", (unsigned long) route->set_list[i]);
+     printf ("}");
+  }
+
   printf ("\n");
 }
 

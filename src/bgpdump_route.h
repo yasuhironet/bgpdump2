@@ -21,6 +21,7 @@
 
 #define ROUTE_LIMIT_DEFAULT "1000K"
 #define ROUTE_PATH_LIMIT 128
+#define ROUTE_SET_LIMIT 128
 
 #include "bgpdump.h"
 
@@ -32,8 +33,10 @@ struct bgp_route
   uint8_t prefix_length;
   char nexthop[MAX_ADDR_LENGTH];
   uint8_t path_size;
+  uint8_t set_size;
   uint32_t origin_as;
   uint32_t path_list[ROUTE_PATH_LIMIT];
+  uint32_t set_list[ROUTE_SET_LIMIT];
   uint8_t origin;
   uint8_t atomic_aggregate;
   uint32_t localpref;
