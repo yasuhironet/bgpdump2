@@ -29,6 +29,7 @@ struct peer
   uint64_t route_count_by_plen[33];
   uint64_t route_count_ipv4;
   uint64_t route_count_ipv6;
+  FILE *fp;
 };
 
 #define PEER_MAX 256

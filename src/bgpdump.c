@@ -64,7 +64,9 @@ int autsiz = 0;
 struct bgp_route *diff_table[2];
 struct ptree *diff_ptree[2];
 
-uint64_t processed_bytes = 0;
+char *filepath = NULL;         /* current file-path in process */
+char *filename = NULL;         /* current file-name in process */
+uint64_t processed_bytes = 0;  /* processed bytes in the file */
 
 int
 bgpdump_process (char *buf, size_t *data_len)
@@ -138,7 +140,6 @@ main (int argc, char **argv)
 {
   int status = 0;
   int i;
-  char *filename = NULL;
 
   setlocale (LC_ALL, "");
 
@@ -231,19 +232,20 @@ main (int argc, char **argv)
   /* for each rib files. */
   for (i = 0; i < argc; i++)
     {
-      filename = argv[i];
+      filepath = argv[i];
 
       file_format_t format;
       struct access_method *method;
       void *file;
       size_t ret;
 
-      format = get_file_format (filename);
+      filename = get_file_filename (filepath);
+      format = get_file_format (filepath);
       method = get_access_method (format);
-      file = method->fopen (filename, "r");
+      file = method->fopen (filepath, "r");
       if (! file)
         {
-          fprintf (stderr, "# could not open file: %s\n", filename);
+          fprintf (stderr, "# could not open file: %s\n", filepath);
           continue;
         }
 
@@ -270,7 +272,8 @@ main (int argc, char **argv)
           if (ret <= 0)
             {
               printf ("bgpdump_process(): failed: ret: %ld.\n", ret);
-              printf ("processed bytes: %'lu.\n", processed_bytes);
+              printf ("processed bytes: %'llu.\n",
+                      (unsigned long long)processed_bytes);
               break;
             }
 
@@ -282,7 +285,7 @@ main (int argc, char **argv)
         {
           fprintf (stderr, "warning: %'lu bytes unprocessed data "
                    "remains: %s\n",
-                   datalen, filename);
+                   datalen, filepath);
         }
       method->fclose (file);
 
@@ -301,6 +304,15 @@ main (int argc, char **argv)
         {
           peer_route_count_by_plen_show ();
           peer_route_count_by_plen_clear ();
+        }
+    }
+
+  if (extract)
+    {
+      for (i = 0; i < peer_size; i++)
+        {
+          if (peer_table[i].fp)
+            fclose (peer_table[i].fp);
         }
     }
 
@@ -356,7 +368,7 @@ main (int argc, char **argv)
               printf ("peer %d:\n", peer_spec_index[i]);
               if (verbose)
                 ptree_list (peer_ptree[i]);
-              ptree_query (peer_ptree[i], query_table, query_size);
+              ptree_query (peer_spec_index[i], peer_ptree[i], query_table, query_size);
             }
         }
 

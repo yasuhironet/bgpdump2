@@ -49,13 +49,13 @@ bgpdump_udiff_compare (uint32_t sequence_number)
         {
           route = &rt0[sequence_number];
           printf ("{");
-          route_print (route);
+          route_print (stdout, peer_spec_index[0], route);
         }
       if (! IS_ROUTE_NULL (&rt1[sequence_number]))
         {
           route = &rt1[sequence_number];
           printf ("}");
-          route_print (route);
+          route_print (stdout, peer_spec_index[1], route);
         }
     }
 
@@ -67,7 +67,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
       if (! udiff_lookup)
         {
           printf ("-");
-          route_print (route);
+          route_print (stdout, peer_spec_index[0], route);
         }
       else
         {
@@ -88,14 +88,14 @@ bgpdump_udiff_compare (uint32_t sequence_number)
                   route->flag = '-';
                   printf ("-");
                 }
-              route_print (route);
+              route_print (stdout, peer_spec_index[0], route);
             }
           else
             {
               /* only in left and unreachable in right (maybe partially) */
               route->flag = '<';
               printf ("<");
-              route_print (route);
+              route_print (stdout, peer_spec_index[0], route);
             }
         }
     }
@@ -108,7 +108,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
       if (! udiff_lookup)
         {
           printf ("+");
-          route_print (route);
+          route_print (stdout, peer_spec_index[1], route);
         }
       else
         {
@@ -129,14 +129,14 @@ bgpdump_udiff_compare (uint32_t sequence_number)
                   route->flag = '+';
                   printf ("+");
                 }
-              route_print (route);
+              route_print (stdout, peer_spec_index[1], route);
             }
           else
             {
               /* only in right and unreachable in left (maybe partially) */
               route->flag = '>';
               printf (">");
-              route_print (route);
+              route_print (stdout, peer_spec_index[1], route);
             }
         }
     }
@@ -162,7 +162,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
                 {
                   route->flag = '(';
                   printf ("(");
-                  route_print (route);
+                  route_print (stdout, peer_spec_index[0], route);
                 }
             }
 
@@ -176,7 +176,7 @@ bgpdump_udiff_compare (uint32_t sequence_number)
                 {
                   route->flag = ')';
                   printf (")");
-                  route_print (route);
+                  route_print (stdout, peer_spec_index[1], route);
                 }
             }
         }
