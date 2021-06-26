@@ -68,40 +68,43 @@ route_table_create ()
 }
 
 void
-route_print_brief (struct bgp_route *route)
+route_print_brief (FILE *fp, int peer_index, struct bgp_route *route)
 {
   char buf[64], buf2[64];
   inet_ntop (route->af, route->prefix, buf, sizeof (buf));
   inet_ntop (route->af, route->nexthop, buf2, sizeof (buf2));
-  printf ("%s/%d %s\n", buf, route->prefix_length, buf2);
+  if (! extract && peer_spec_size != 1)
+    fprintf (fp, "peer[%d]: ", peer_index);
+  fprintf (fp, "%s/%d %s\n", buf, route->prefix_length, buf2);
 }
 
 void
-route_print (struct bgp_route *route)
+route_print (FILE *fp, int peer_index, struct bgp_route *route)
 {
   int i;
   char buf[64], buf2[64];
   inet_ntop (route->af, route->prefix, buf, sizeof (buf));
   inet_ntop (route->af, route->nexthop, buf2, sizeof (buf2));
-  printf ("%s/%d %s ", buf, route->prefix_length, buf2);
-  printf ("origin_as: %lu ", (unsigned long) route->origin_as);
-  printf ("as-path[%d]:", route->path_size);
+  if (! extract && peer_spec_size != 1)
+    fprintf (fp, "peer[%d]: ", peer_index);
+  fprintf (fp, "%s/%d %s ", buf, route->prefix_length, buf2);
+  fprintf (fp, "origin_as: %lu ", (unsigned long) route->origin_as);
+  fprintf (fp, "as-path[%d]:", route->path_size);
   for (i = 0; i < MIN (route->path_size, ROUTE_PATH_LIMIT); i++)
-    printf (" %lu", (unsigned long) route->path_list[i]);
+    fprintf (fp, " %lu", (unsigned long) route->path_list[i]);
   if (route->set_size)
     {
-      printf (" {");
+      fprintf (fp, " {");
       for (i = 0; i < MIN (route->set_size, ROUTE_SET_LIMIT); i++)
-        printf ("%s%lu", (i == 0 ? "" : " "),
+        fprintf (fp, "%s%lu", (i == 0 ? "" : " "),
                 (unsigned long) route->set_list[i]);
-      printf ("}");
+      fprintf (fp, "}");
     }
-
-  printf ("\n");
+  fprintf (fp, "\n");
 }
 
 void
-route_print_compat (struct bgp_route *route)
+route_print_compat (FILE *fp, int peer_index, struct bgp_route *route)
 {
   int i;
   char prefix[64];
@@ -166,110 +169,9 @@ route_print_compat (struct bgp_route *route)
           "Community|AtomAggr|AggrAS AggrAddr|\n");
 #endif
 
-  printf ("TABLE_DUMP2|%lu|B|%s|%lu|"
+  fprintf (fp, "TABLE_DUMP2|%lu|B|%s|%lu|"
           "%s/%d|%s|%s|%s|%lu|%lu|"
           "%lu|%s|%s|\n",
-          (unsigned long) timestamp, peer_addr, (unsigned long) peer_asn,
-          prefix, plen, as_path, origin, nexthop,
-          (unsigned long) localpref, (unsigned long) med,
-          (unsigned long) community, atomicaggr, atomicaggr_asn_addr);
-
-}
-
-void
-route_print_brief2 (int peer_index, struct bgp_route *route)
-{
-  char buf[64], buf2[64];
-  inet_ntop (route->af, route->prefix, buf, sizeof (buf));
-  inet_ntop (route->af, route->nexthop, buf2, sizeof (buf2));
-  printf ("peer[%d]: %s/%d %s\n", peer_index, buf, route->prefix_length, buf2);
-}
-
-void
-route_print2 (int peer_index, struct bgp_route *route)
-{
-  int i;
-  char buf[64], buf2[64];
-  inet_ntop (route->af, route->prefix, buf, sizeof (buf));
-  inet_ntop (route->af, route->nexthop, buf2, sizeof (buf2));
-  printf ("peer[%d]: %s/%d %s ", peer_index, buf, route->prefix_length, buf2);
-  printf ("origin_as: %lu ", (unsigned long) route->origin_as);
-  printf ("as-path[%d]:", route->path_size);
-  for (i = 0; i < MIN (route->path_size, ROUTE_PATH_LIMIT); i++)
-    printf (" %lu", (unsigned long) route->path_list[i]);
-  printf ("\n");
-}
-
-void
-route_print_compat2 (int peer_index, struct bgp_route *route)
-{
-  int i;
-  char prefix[64];
-  char nexthop[64];
-  int plen;
-  char peer_addr[64];
-  unsigned long peer_asn;
-
-  char *p, *e;
-  char as_path[128];
-  char *origin;
-
-  unsigned long localpref;
-  unsigned long med;
-  unsigned long community;
-
-  inet_ntop (route->af, route->prefix, prefix, sizeof (prefix));
-  plen = route->prefix_length;
-  inet_ntop (route->af, route->nexthop, nexthop, sizeof (nexthop));
-  inet_ntop (AF_INET, &peer_table[peer_index].ipv4_addr,
-             peer_addr, sizeof (peer_addr));
-  peer_asn = peer_table[peer_index].asnumber;
-
-  p = as_path;
-  e = as_path + sizeof (as_path);
-  for (i = 0; i < MIN (route->path_size, ROUTE_PATH_LIMIT); i++)
-    {
-      if (i == 0)
-        snprintf (p, e - p, "%lu", (unsigned long) route->path_list[i]);
-      else
-        snprintf (p, e - p, " %lu", (unsigned long) route->path_list[i]);
-      p = as_path + strlen (as_path);
-    }
-
-  switch (route->origin)
-    {
-    case '0':
-      origin = "IGP";
-      break;
-    case '1':
-      origin = "EGP";
-      break;
-    case '2':
-    default:
-      origin = "INCOMPLETE";
-      break;
-    }
-
-  char *atomicaggr;
-  char *atomicaggr_asn_addr;
-
-  localpref = route->localpref;
-  med = route->med;
-  community = route->community;
-
-  atomicaggr = (route->atomic_aggregate > 0 ? "AG" : "NAG");
-  atomicaggr_asn_addr = "";
-
-#if 0
-  printf ("TABLE_DUMP2|Timestamp|B|Peer IP Address|Peer ASN|"
-          "Prefix/Plen|AS-Path|Origin|Nexthop|LocalPref|MED|"
-          "Community|AtomAggr|AggrAS AggrAddr|\n");
-#endif
-
-  printf ("TABLE_DUMP2_p[%d]|%lu|B|%s|%lu|"
-          "%s/%d|%s|%s|%s|%lu|%lu|"
-          "%lu|%s|%s|\n",
-          peer_index,
           (unsigned long) timestamp, peer_addr, (unsigned long) peer_asn,
           prefix, plen, as_path, origin, nexthop,
           (unsigned long) localpref, (unsigned long) med,

@@ -63,6 +63,7 @@ int gclose (void *file);
 
 file_format_t get_file_format (char *filename);
 struct access_method *get_access_method (file_format_t format);
+char *get_file_filename (char *filepath);
 
 #endif /*_BGPDUMP_FILE_H_*/
 

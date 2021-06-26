@@ -186,4 +186,21 @@ get_access_method (file_format_t format)
   return NULL;
 }
 
+char *
+get_file_filename (char *filepath)
+{
+  char *p = NULL;
+  char *std_in = "stdin";
+  p = rindex (filepath, '/');
+  if (p)
+    p++;
+  if (strlen (p) == 0)
+    return std_in;
+  if (! strcmp (p, "-"))
+    return std_in;
+  if (p)
+    return p;
+  return filepath;
+}
+
 

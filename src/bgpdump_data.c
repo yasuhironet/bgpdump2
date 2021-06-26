@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "bgpdump.h"
 #include "bgpdump_option.h"
@@ -41,8 +42,6 @@
 
 extern struct bgp_route *diff_table[];
 extern struct ptree *diff_ptree[];
-
-extern uint64_t processed_bytes;
 
 void
 bgpdump_debug_break ()
@@ -100,8 +99,8 @@ bgpdump_process_mrt_header (struct mrt_header *h, struct mrt_info *info)
 
   //if (show && (debug || detail))
   if (debug)
-    printf ("MRT Header: offset: @%'luB ts: %lu type: %hu sub: %hu len: %lu\n",
-            processed_bytes,
+    printf ("MRT Header: offset: @%'lluB ts: %lu type: %hu sub: %hu len: %lu\n",
+            (unsigned long long) processed_bytes,
             (unsigned long) timestamp,
             (unsigned short) mrt_type,
             (unsigned short) mrt_subtype,
@@ -459,7 +458,7 @@ bgpdump_process_bgp_attributes (struct bgp_route *route, char *start, char *end)
                         printf ("\n");
                       printf ("%s_list buffer overflow.\n",
                               (type == AS_SET ? "set" : "path"));
-                      route_print (route);
+                      route_print (stdout, 0, route);
                     }
 #endif
 
@@ -658,8 +657,9 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
       if (peer_index >= peer_size)
         printf ("malformed: peer_index: %d >= peer_size: %d\n",
                 peer_index, peer_size);
-      printf ("rib_entry[%d]: %'luB: skipping %ld bytes, to %p\n",
-              index, processed_bytes, data_end - p, data_end);
+      printf ("rib_entry[%d]: %'lluB: skipping %ld bytes, to %p\n",
+              index, (unsigned long long) processed_bytes,
+              data_end - p, data_end);
       p = data_end;
       *q = p;
       fflush (stdout);
@@ -738,6 +738,7 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
+      /* lookup only works for the specified peer */
       if (peer_spec_size)
         {
           struct bgp_route *rp;
@@ -781,24 +782,36 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
             }
         }
 
-      if (peer_spec_size == 1)
+      FILE *fp;
+      if (extract)
         {
-          if (brief)
-            route_print_brief (&route);
-          else if (show)
-            route_print (&route);
-          else if (compat_mode)
-            route_print_compat (&route);
+          if (! peer_table[peer_index].fp)
+            {
+              char fpname[128];
+              snprintf (fpname, sizeof (fpname),
+                        "%s-p%d.txt", filename, peer_index);
+              fp = fopen (fpname, "w");
+              if (! fp)
+                {
+                  fprintf (stderr, "can't open file: %s: %s\n",
+                           fpname, strerror (errno));
+                  fprintf (stderr, "discarding info for file: %s peer: %d\n",
+                           filename, peer_index);
+                  fp = fopen ("/dev/null", "w");
+                }
+              peer_table[peer_index].fp = fp;
+            }
+          fp = peer_table[peer_index].fp;
         }
       else
-        {
-          if (brief)
-            route_print_brief2 (peer_index, &route);
-          else if (show)
-            route_print2 (peer_index, &route);
-          else if (compat_mode)
-            route_print_compat2 (peer_index, &route);
-        }
+        fp = stdout;
+
+      if (brief)
+        route_print_brief (fp, peer_index, &route);
+      else if (show)
+        route_print (fp, peer_index, &route);
+      else if (compat_mode)
+        route_print_compat (fp, peer_index, &route);
     }
 
   BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)

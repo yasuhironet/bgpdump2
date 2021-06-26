@@ -61,7 +61,7 @@ ptree_list (struct ptree *ptree)
 }
 
 void
-ptree_query (struct ptree *ptree,
+ptree_query (int peer_index, struct ptree *ptree,
              struct query *query_table, uint64_t query_size)
 {
   int i;
@@ -78,7 +78,7 @@ ptree_query (struct ptree *ptree,
           struct bgp_route *route = x->data;
           memcpy (answer, route->nexthop, MAX_ADDR_LENGTH);
           if (! benchmark)
-            route_print (route);
+            route_print (stdout, peer_index, route);
         }
       else if (! benchmark)
         {

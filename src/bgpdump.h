@@ -34,5 +34,8 @@ extern int route_orig_size;
 extern int qafi;
 #define MAX_ADDR_LENGTH 16
 
+extern char *filename;
+extern uint64_t processed_bytes;
+
 #endif /*_BGPDUMP_H_*/
 
