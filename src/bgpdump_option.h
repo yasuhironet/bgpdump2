@@ -25,6 +25,7 @@ extern int verbose;
 extern int show;
 extern int brief;
 extern int extract;
+extern int unified;
 extern int compat_mode;
 extern int udiff;
 extern int udiff_verbose;

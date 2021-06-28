@@ -73,7 +73,7 @@ route_print_brief (FILE *fp, int peer_index, struct bgp_route *route)
   char buf[64], buf2[64];
   inet_ntop (route->af, route->prefix, buf, sizeof (buf));
   inet_ntop (route->af, route->nexthop, buf2, sizeof (buf2));
-  if (! extract && peer_spec_size != 1)
+  if (! extract && peer_spec_size != 1 && ! unified)
     fprintf (fp, "peer[%d]: ", peer_index);
   fprintf (fp, "%s/%d %s\n", buf, route->prefix_length, buf2);
 }

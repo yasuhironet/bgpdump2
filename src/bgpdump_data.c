@@ -767,6 +767,29 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
                        (void *)rp, peer_ptree[peer_spec_i]);
         }
 
+      if (unified)
+        {
+          struct bgp_route *rp;
+          int *route_size = &peer_route_size[0];
+          if (*route_size >= nroutes)
+            {
+              printf ("route table overflow: route_size: %'d.\n",
+                      *route_size);
+              printf ("try to increase the route_table size: "
+                      "e.g., -M 2000000\n");
+              exit (-1);
+            }
+
+          struct bgp_route *rpp;
+          rpp = peer_route_table[0];
+          rp = &rpp[(*route_size)];
+          (*route_size)++;
+
+          memcpy (rp, &route, sizeof (struct bgp_route));
+          ptree_add ((char *)&rp->prefix, rp->prefix_length,
+                     (void *)rp, peer_ptree[0]);
+        }
+
       if (udiff)
         {
           for (i = 0; i < MIN (peer_spec_size, 2); i++)
@@ -806,12 +829,15 @@ bgpdump_process_table_v2_rib_entry (int index, char **q,
       else
         fp = stdout;
 
-      if (brief)
-        route_print_brief (fp, peer_index, &route);
-      else if (show)
-        route_print (fp, peer_index, &route);
-      else if (compat_mode)
-        route_print_compat (fp, peer_index, &route);
+      if (! unified)
+        {
+          if (brief)
+            route_print_brief (fp, peer_index, &route);
+          else if (show)
+            route_print (fp, peer_index, &route);
+          else if (compat_mode)
+            route_print_compat (fp, peer_index, &route);
+        }
     }
 
   BUFFER_OVERRUN_CHECK(p, attribute_length, data_end)
@@ -872,6 +898,9 @@ bgpdump_process_table_v2_rib_unicast (struct mrt_header *h,
   for (i = 0; i < entry_count && p < data_end; i++)
     {
       bgpdump_process_table_v2_rib_entry (i, &p, info, data_end, af);
+
+      if (unified)
+        break;
     }
 
   if (udiff)
