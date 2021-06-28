@@ -207,6 +207,16 @@ main (int argc, char **argv)
         }
     }
 
+  if (unified)
+    {
+      for (i = 0; i < 1; i++)
+        {
+          peer_route_table[i] = route_table_create ();
+          peer_route_size[i] = 0;
+          peer_ptree[i] = ptree_create ();
+        }
+    }
+
   if (lookup)
     {
       route_init ();
@@ -376,6 +386,27 @@ main (int argc, char **argv)
         {
           benchmark_stop ();
           benchmark_print (query_size);
+        }
+    }
+
+  if (unified)
+    {
+      int peer_index = 0;
+      FILE *fp = stdout;
+      struct bgp_route *rp;
+      struct ptree_node *x;
+      for (x = ptree_head (peer_ptree[0]); x; x = ptree_next (x))
+        {
+          rp = (struct bgp_route *) x->data;
+          if (! rp)
+            continue;
+
+          if (brief)
+            route_print_brief (fp, peer_index, rp);
+          else if (show)
+            route_print (fp, peer_index, rp);
+          else if (compat_mode)
+            route_print_compat (fp, peer_index, rp);
         }
     }
 

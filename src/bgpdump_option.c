@@ -35,7 +35,7 @@ extern int optopt;
 extern int opterr;
 extern int optreset;
 
-const char *optstring = "hVvdmbxPp:a:uUrcCjkN:M:gl:L:46H:";
+const char *optstring = "hVvdmbxyPp:a:uUrcCjkN:M:gl:L:46H:";
 const struct option longopts[] =
 {
   { "help",         no_argument,       NULL, 'h' },
@@ -45,6 +45,7 @@ const struct option longopts[] =
   { "compat-mode",  no_argument,       NULL, 'm' },
   { "brief",        no_argument,       NULL, 'b' },
   { "extract",      no_argument,       NULL, 'x' },
+  { "unified",      no_argument,       NULL, 'y' },
   { "peer-table",   no_argument,       NULL, 'P' },
   { "peer",         required_argument, NULL, 'p' },
   { "autnum",       required_argument, NULL, 'a' },
@@ -74,6 +75,7 @@ const char opthelp[] = "\
 -m, --compat-mode         Display in libbgpdump -m compatible mode.\n\
 -b, --brief               List information (i.e., simple prefix-nexthops).\n\
 -x, --extract             Extract prefixes for each peers in files in CWD.\n\
+-y, --unified             Display imaginary unified route table from all peers.\n\
 -P, --peer-table          Display the peer table and exit.\n\
 -p, --peer <peer_index>   Specify peers by peer_index.\n\
                           At most %d peers can be specified.\n\
@@ -105,6 +107,7 @@ int show = 0;
 int compat_mode = 0;
 int brief = 0;
 int extract = 0;
+int unified = 0;
 int peer_table_only = 0;
 int udiff = 0;
 int udiff_verbose = 0;
@@ -183,6 +186,9 @@ bgpdump_getopt (int argc, char **argv)
           break;
         case 'x':
           extract++;
+          break;
+        case 'y':
+          unified++;
           break;
 
         case 'P':
