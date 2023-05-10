@@ -97,7 +97,7 @@ peer_stat_finish ()
     memset (&peer_stat[i], 0, sizeof (struct peer_stat));
 }
 
-uint8_t prefix_length;
+extern uint8_t prefix_length;
 
 void
 peer_stat_save (int peer_index, struct bgp_route *route)

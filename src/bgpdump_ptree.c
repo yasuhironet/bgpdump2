@@ -76,9 +76,17 @@ ptree_query (int peer_index, struct ptree *ptree,
       if (x)
         {
           struct bgp_route *route = x->data;
+          if (route->af != qafi)
+            {
+              printf ("wrong afi: query-afi: %d route-afi: %d\n",
+                      qafi, route->af);
+            }
+          else
+            {
           memcpy (answer, route->nexthop, MAX_ADDR_LENGTH);
           if (! benchmark)
             route_print (stdout, peer_index, route);
+            }
         }
       else if (! benchmark)
         {
