@@ -66,6 +66,7 @@ ptree_query (int peer_index, struct ptree *ptree,
 {
   int i;
   struct ptree_node *x;
+  char buf[64];
 
   for (i = 0; i < query_size; i++)
     {
@@ -83,14 +84,20 @@ ptree_query (int peer_index, struct ptree *ptree,
             }
           else
             {
-          memcpy (answer, route->nexthop, MAX_ADDR_LENGTH);
-          if (! benchmark)
-            route_print (stdout, peer_index, route);
+              memcpy (answer, route->nexthop, MAX_ADDR_LENGTH);
+              if (! benchmark)
+                {
+                  if (lookup_file)
+                    {
+                      inet_ntop (qafi, query, buf, sizeof (buf));
+                      printf ("%s: ", buf);
+                    }
+                  route_print (stdout, peer_index, route);
+                }
             }
         }
       else if (! benchmark)
         {
-          char buf[64];
           inet_ntop (qafi, query, buf, sizeof (buf));
           printf ("%s: no route found.\n", buf);
         }
