@@ -194,6 +194,8 @@ get_file_filename (char *filepath)
   p = rindex (filepath, '/');
   if (p)
     p++;
+  else
+    p = filepath;
   if (strlen (p) == 0)
     return std_in;
   if (! strcmp (p, "-"))
